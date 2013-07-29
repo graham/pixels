@@ -26,6 +26,7 @@ class Ping(Animation):
     def step(self):
         self.strip.set_pixel(self.dot, int(self.red * self.level), int(self.green * self.level), int(self.blue * self.level))
 
+        ## change the decay based on power.
         if self.level > 0.25:
             self.level -= 0.02
         elif self.level <= 0.25:
