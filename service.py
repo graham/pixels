@@ -27,9 +27,9 @@ class Ping(Animation):
         self.strip.set_pixel(self.dot, int(self.red * self.level), int(self.green * self.level), int(self.blue * self.level))
 
         if self.level > 0.25:
-            self.level -= 0.005
+            self.level -= 0.02
         elif self.level <= 0.25:
-            self.level -= 0.002
+            self.level -= 0.001
 
         if self.level > 0.0:
             return True
@@ -71,9 +71,9 @@ if __name__ == '__main__':
     while True:
         index += 1
         s.step()
-        time.sleep(0.005)
+        time.sleep(0.003)
 
-        if index % 16 == 0:
+        if index % 2 == 0:
             s.animations.append( Ping(s) )
 
         for strip in s.strips:
