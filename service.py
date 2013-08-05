@@ -105,9 +105,7 @@ class Service(object):
     def __init__(self, strips):
         self.strips = strips
         self.animations = []
-        self.used_pairs = {}
-        for i in strips:
-            self.used_pairs[i] = []
+        self.used_pairs = [[] for i in strips]
 
     def get_open_dot(self):
         small_index = 0
@@ -140,7 +138,7 @@ class Service(object):
 
 if __name__ == '__main__':
     ip = ('192.168.0.99', 9897)
-    w, z = Strip(ip, 2), Strip(ip, 3)
+    w, z = Strip(ip, 0), Strip(ip, 1)
 
     s = Service([w, z])
 
