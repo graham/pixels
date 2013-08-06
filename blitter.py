@@ -33,8 +33,8 @@ def main():
 
     pixel_width = 120
     on = True
-    master_delay = 0.005
-    delay = 0.005
+    master_delay = 0.0025
+    delay = 0.0025
 
     while True:
         frame_name, frame = client.blpop(FRAME_KEY)
@@ -50,8 +50,6 @@ def main():
         lines.append(frame[pixel_width*5:pixel_width*6])
         lines.append(frame[pixel_width*6:pixel_width*7])
         lines.append(frame[pixel_width*7:pixel_width*8])
-
-        time.sleep(master_delay)
 
         for index in range(0, 4):
             s = struct.pack('!xxxxB', index) + ''.join(lines[index*2]) + ''.join(lines[(index*2)+1])

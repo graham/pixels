@@ -22,11 +22,13 @@ def rand_frame():
 
 def main():
     client = redis.Redis()
+    toggle = True
 
     while True:
-        time.sleep(0.1)
+        time.sleep(0.25)
         frame = rand_frame()
         client.rpush(FRAME_KEY, cPickle.dumps(frame))
+        toggle = not toggle
 
 if __name__ == "__main__":
     main()
