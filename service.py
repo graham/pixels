@@ -4,18 +4,20 @@ import random
 import time
 import redis
 import cPickle
+import Image
 
 FRAME_KEY = 'frame'
 MAX = 255
 MID = 128
 OFF = 0
+FRAME_TIME = 0.03
 
 class Animation(object):
     def __init__(self, service):
         self.loc = [0, 0]
     def init(self, service):
         pass
-    def step(self, service):
+    def step(self, service, delta_time):
         pass
     def finish(self, service):
         service.set_pixel(self.loc[0], self.loc[1], 0, 0, 0)
@@ -28,7 +30,7 @@ class Ping(Animation):
         self.green = bound(random.randint(-MID, MAX), OFF, MID)
         self.loc = [random.randint(0, service.width-1), random.randint(0, service.height-1)]
 
-    def step(self, service):
+    def step(self, service, delta_time):
         service.set_pixel(self.loc[0], self.loc[1], int(self.red * self.level), int(self.green * self.level), int(self.blue * self.level))
 
         ## change the decay based on power.
@@ -40,6 +42,39 @@ class Ping(Animation):
             service.set_pixel(self.loc[0], self.loc[1],OFF,OFF,OFF)
             return False            
         
+class SpriteAnimation(Animation):
+    def init(self, filename, frame_width, frame_height, time_per_frame):
+        image = Image.open(filename)
+        self.image_data = image.getdata()
+        self.frame_width = frame_width
+        self.frame_height = frame_height
+        self.num_frames = int(self.image_data.size[0] / self.frame_width)
+        width, height = image.size
+        self.image_width = width
+        self.time_per_frame = time_per_frame
+        self.accumulated_time = self.time_per_frame
+        self.current_frame = 0
+
+    def step(self, service, delta_time):
+        self.accumulated_time += delta_time
+        if self.accumulated_time < self.time_per_frame:
+            return True
+
+        self.current_frame = (self.current_frame + 1) % self.num_frames
+        self.accumulated_time = 0
+
+        frame_start = (self.current_frame * self.frame_width)
+        for x in range(0, self.frame_width):
+            for y in range(0, self.frame_height):
+                pixel_data = self.image_data[frame_start + x + (y * self.image_width)]
+                if pixel_data[3] > 0:
+                    alpha = (pixel_data[3] / 255.0)
+                    service.set_pixel(x, y, (pixel_data[0] * alpha), (pixel_data[1] * alpha), (pixel_data[2] * alpha))
+                else:
+                    service.set_pixel(x, y, OFF, OFF, OFF)
+
+        return True
+
 class Service(object):
     def __init__(self, width, height):
         self.width = width
@@ -56,11 +91,14 @@ class Service(object):
         c.init(self)
         self.animations.append(c)
 
-    def step(self):
+    def add_instance(self, ani_instance):
+        self.animations.append(ani_instance)
+
+    def step(self, delta_time):
         remain = []
         drop = []
         for i in self.animations:
-            if i.step(self):
+            if i.step(self, delta_time):
                 remain.append(i)
             else:
                 i.finish(self)
@@ -100,15 +138,14 @@ if __name__ == '__main__':
         while client.llen(FRAME_KEY) > 50:
             time.sleep(0.05)
 
-    def update():
+    def update(delta_time=0):
         safe_check()
-        new_frame = s.step()
+        new_frame = s.step(delta_time)
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
 
     font = PixelFont("font.tif")
 
     def justworks():
-        offset = 0
         render_offset = 20
         font.draw("IT ", render_offset + 0, 0, s, 255, 255, 255)
         font.draw("JUST WORK", render_offset + 18, 0, s, 0, 0, 255)
@@ -116,10 +153,26 @@ if __name__ == '__main__':
         update()
 
     def print_text(text):
-        offset = 0
         render_offset = 20
         font.draw(text, render_offset + 0, 0, s, 255, 255, 255)
         update()
+
+    def wizard():
+        sprite_animation = SpriteAnimation(s)
+        sprite_animation.init("animation.png", 16, 8, 0.5)
+        s.add_instance(sprite_animation)
+
+        total_time = 5.0
+        last_frame_time = time.time()
+        while total_time > 0:
+            current_time = time.time()
+            delta_time = (current_time - last_frame_time)
+            if delta_time < FRAME_TIME:
+                continue
+            
+            last_frame_time = current_time
+            update(delta_time)
+            total_time -= delta_time
 
     def pings():
         while True:
