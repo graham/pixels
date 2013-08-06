@@ -96,7 +96,12 @@ if __name__ == '__main__':
     client = redis.Redis()
     s = Service(width=120, height=8)
 
+    def safe_check():
+        while client.llen(FRAME_KEY) > 50:
+            time.sleep(0.05)
+
     def update():
+        safe_check()
         new_frame = s.step()
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
 
