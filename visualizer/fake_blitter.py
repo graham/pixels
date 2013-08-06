@@ -23,14 +23,20 @@ def jquery():
 
 @route('/data')
 def data():
-    frame_name, frame = client.blpop(FRAME_KEY, 10)
-    if frame == None:
+    result = client.blpop(FRAME_KEY, 10)
+    if result == None:
         return json.dumps(None)
 
+    frame_name, frame = result
     frame = cPickle.loads(frame)
     frame = ''.join(frame)
     frame = map(lambda x: struct.unpack('!B', x)[0], frame)
 
-    return json.dumps(frame)
+    dump = []
+
+    for i in range(0, len(frame), 3):
+        dump.append([frame[i], frame[i+1], frame[i+2]])
+
+    return json.dumps(dump)
 
 run(host='localhost', port=8080)

@@ -33,6 +33,7 @@ var draw_array = new Array();
 for(var i=0; i < total_pixels; i++) {
     draw_array[i] = [i, i, i];
 }
+
 function resize_canvas()
 {
     var ledcanvas = document.getElementById('LED');
@@ -43,6 +44,7 @@ function resize_canvas()
     total_lines = parseInt(document.getElementById('height').value);
     line_length = parseInt(document.getElementById('width').value);
 }
+
 function draw()
 {
     for (var i=0; i<draw_array.length; i++)
@@ -59,4 +61,19 @@ function draw()
     x = y = 0;                                       
 }
 
+function update() {
+  $.get('/data', function(data) {
+    if (data == null) {
+      setTimeout(function() { update(); }, 1);
+    } else {                                       
+      draw_array = data;
+      draw();
+      setTimeout(function() { update(); }, 1);
+    }
+  });
+}
+
+$(document).ready(function() {
+  update();
+});
 </script>
