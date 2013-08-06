@@ -8,11 +8,8 @@ from pixelpusher import pixel, build_strip, send_strip
 
 import sys
 
-if sys.argv > 1:
-    IP = sys.argv[1]
-else:
-    IP = '192.168.0.99'
-    PORT = 9897
+IP = '192.168.0.99'
+PORT = 9897
     
 MAX = 255
 MID = 128
