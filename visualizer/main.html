@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
+<head><script type="text/javascript" src="/jquery.js"> </script></head>
 <body>
-<script type="text/javascript" src="/jquery.js"></script>
 <center>
     <div style="margin-top:100px">
         <p>Specify # of Pixels:</p>
@@ -47,7 +47,6 @@ function resize_canvas()
 
 function draw()
 {
-    console.log(draw_array);
     for (var i=0; i<draw_array.length; i++)
     {
         ctx.fillStyle="rgb("+draw_array[i][0]+","+draw_array[i][1]+","+draw_array[i][2]+")";
@@ -63,9 +62,10 @@ function draw()
 }
 
 function update() {
-  $.get('/data', function(data) {
+  $.get('/data', function(d) {
+    var data = JSON.parse(d);
     if (data == null) {
-      setTimeout(function() { update(); }, 10);
+      setTimeout(function() { update(); }, 500);
     } else {                                       
       draw_array = data;
       draw();

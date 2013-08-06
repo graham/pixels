@@ -23,7 +23,8 @@ def jquery():
 
 @route('/data')
 def data():
-    result = client.blpop(FRAME_KEY, 10)
+    result = client.blpop(FRAME_KEY, 1)
+
     if result == None:
         return json.dumps(None)
 
