@@ -18,6 +18,7 @@ class PixelFont(object):
         self.image_width = width
 
     def draw(self, string, start_x, start_y, service, red, green, blue):
+        point_x = 0
         for i in range(0, len(string)):
             character = string[i]
             char_data = self.character_data(character)
@@ -27,16 +28,17 @@ class PixelFont(object):
                     point_y = y + start_y
                     value = char_data[x + (y * FONT_WIDTH)]
 
-                    if point_x < 0 or point_x >= service.width or point_y < 0 or point_y >= service.height: 
+                    if point_x < 0 or point_x >= service.width or point_y < 0 or point_y >= service.height:
                         continue
 
                     service.set_pixel(point_x, point_y, value * red, value * green, value * blue)
+        return point_x
 
     def character_data(self, character):
         index = CHARACTERS_INDEX.index(character)
         char_start = index * FONT_WIDTH
         array = []
-        
+
         for y in range(0, FONT_HEIGHT):
             start = char_start + (y * (self.image_width - 1))
             end = char_start + (y * (self.image_width - 1)) + FONT_WIDTH

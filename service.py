@@ -40,8 +40,8 @@ class Ping(Animation):
             return True
         else:
             service.set_pixel(self.loc[0], self.loc[1],OFF,OFF,OFF)
-            return False            
-        
+            return False
+
 class SpriteAnimation(Animation):
     def init(self, filename, frame_width, frame_height, time_per_frame):
         image = Image.open(filename)
@@ -81,7 +81,7 @@ class Service(object):
         self.height = height
         self.pixel_map = [ pixel(0, 0, 0) for i in range( width * height ) ]
         self.animations = []
-        
+
     def set_pixel(self, x, y, red, green, blue):
         index = (y * self.width) + x
         self.pixel_map[index] = pixel(red, green, blue)
@@ -124,6 +124,17 @@ class Service(object):
             new_map += line
 
         self.pixel_map = new_map
+
+    def shift_up(self):
+        new_map = self.pixel_map[:self.width*(self.height-1)]
+        new_map += [pixel(0, 0, 0) for i in xrange(self.width)]
+        self.pixel_map = new_map
+
+    def shift_down(self):
+        new_map = [pixel(0, 0, 0) for i in xrange(self.width)]
+        new_map += self.pixel_map[:self.width*(self.height-1)]
+        self.pixel_map = new_map
+
 
     def fill(self, red, green, blue):
         for x in range(0, self.width):
@@ -169,7 +180,7 @@ if __name__ == '__main__':
             delta_time = (current_time - last_frame_time)
             if delta_time < FRAME_TIME:
                 continue
-            
+
             last_frame_time = current_time
             update(delta_time)
             total_time -= delta_time
