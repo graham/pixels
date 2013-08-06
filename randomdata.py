@@ -5,7 +5,7 @@ import cPickle
 
 from pixelpusher import pixel, build_strip, send_strip
 
-MAX = 32
+MAX = 255
 MID = 128
 OFF = 0
 
@@ -25,7 +25,7 @@ def main():
     toggle = True
 
     while True:
-        time.sleep(0.25)
+        time.sleep(0.05)
         frame = rand_frame()
         client.rpush(FRAME_KEY, cPickle.dumps(frame))
         toggle = not toggle

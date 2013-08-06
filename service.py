@@ -98,20 +98,20 @@ if __name__ == '__main__':
 
     def update():
         new_frame = s.step()
-        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))        
-
+        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
 
     font = PixelFont("font.tif")
 
-    offset = 0
-
-    while True:
-        time.sleep(0.03)
-#        s.add(Ping)
-    
-        offset = (offset + 1) % (s.width * 2)
-        render_offset = (offset - s.width)
-
+    def justworks():
+        offset = 0
+        render_offset = 20
         font.draw("IT ", render_offset + 0, 0, s, 255, 255, 255)
         font.draw("JUST WORK", render_offset + 18, 0, s, 0, 0, 255)
         font.draw("S", render_offset + 72, 0, s, 255, 255, 255)
+        update()
+
+    def print_text(text):
+        offset = 0
+        render_offset = 20
+        font.draw(text, render_offset + 0, 0, s, 255, 255, 255)
+        update()
