@@ -125,4 +125,6 @@ if __name__ == '__main__':
         while True:
             time.sleep(0.02)
             s.add(Ping)
+            s.add(Ping)
+            s.add(Ping)
             update()

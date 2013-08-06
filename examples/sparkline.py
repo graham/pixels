@@ -33,9 +33,9 @@ def main():
         
         for i in range(7, -1, -1):
             if s.height - i == level:
-                red = bound(red + random.randint(-1, 1), 0, 255)
-                blue = bound(blue + random.randint(-1, 1), 0, 255)
-                green = bound(green + random.randint(-1, 1), 0, 255)
+                red = bound(red + random.randint(-8, 8), 0, 255)
+                blue = bound(blue + random.randint(-8, 8), 0, 255)
+                green = bound(green + random.randint(-8, 8), 0, 255)
                 s.set_pixel(s.width-1, i, red, blue, green)
             elif s.height - i < level:
                 s.set_pixel(s.width-1, i, red*0.3, blue*0.3, green*0.3)
