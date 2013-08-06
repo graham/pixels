@@ -21,8 +21,11 @@ def main():
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))        
 
     level = 0
+
+    red, green, blue = 32,32,32
+
     while True:
-        time.sleep(0.01)
+        time.sleep(0.02)
 
         level += random.randint(-1, 1)
         level = bound(level, 0, 8)
@@ -30,9 +33,12 @@ def main():
         
         for i in range(7, -1, -1):
             if s.height - i == level:
-                s.set_pixel(s.width-1, i, MAX, MAX, MAX)
+                red = bound(red + random.randint(-1, 1), 0, 255)
+                blue = bound(blue + random.randint(-1, 1), 0, 255)
+                green = bound(green + random.randint(-1, 1), 0, 255)
+                s.set_pixel(s.width-1, i, red, blue, green)
             elif s.height - i < level:
-                s.set_pixel(s.width-1, i, 2*level, 2*level, 2*level)
+                s.set_pixel(s.width-1, i, red*0.3, blue*0.3, green*0.3)
             else:
                 s.set_pixel(s.width-1, i, OFF, OFF, OFF)
         update()

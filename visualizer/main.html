@@ -49,6 +49,10 @@ function draw()
 {
     for (var i=0; i<draw_array.length; i++)
     {
+        if (draw_array[i][0] + draw_array[i][1] + draw_array[i][2] == 0)
+        {
+            draw_array[i][0] = draw_array[i][1] = draw_array[i][2] = 255;
+        }
         ctx.fillStyle="rgb("+draw_array[i][0]+","+draw_array[i][1]+","+draw_array[i][2]+")";
         ctx.fillRect(x,y,pixel_size,pixel_size);
         x += pixel_size;
@@ -69,7 +73,7 @@ function update() {
     } else {                                       
       draw_array = data;
       draw();
-      setTimeout(function() { update(); }, 10);
+      setTimeout(function() { update(); }, 1);
     }
   });
 }

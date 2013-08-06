@@ -5,7 +5,7 @@ import cPickle
 
 from pixelpusher import pixel, build_strip, send_strip
 
-MAX = 255
+MAX = 32
 MID = 128
 OFF = 0
 
@@ -25,7 +25,7 @@ def main():
     toggle = True
 
     def safe_check():
-        while client.llen(FRAME_KEY) > 50:
+        while client.llen(FRAME_KEY) > 10:
             time.sleep(0.05)
 
     while True:

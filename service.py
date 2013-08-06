@@ -173,3 +173,9 @@ if __name__ == '__main__':
             last_frame_time = current_time
             update(delta_time)
             total_time -= delta_time
+
+    def pings():
+        while True:
+            time.sleep(0.02)
+            s.add(Ping)
+            update()
