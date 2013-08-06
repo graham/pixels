@@ -26,6 +26,10 @@ class PixelFont(object):
                     point_x = (i * FONT_WIDTH) + x + start_x
                     point_y = y + start_y
                     value = char_data[x + (y * FONT_WIDTH)]
+
+                    if point_x < 0 or point_x >= service.width or point_y < 0 or point_y >= service.height: 
+                        continue
+
                     service.set_pixel(point_x, point_y, value * red, value * green, value * blue)
 
     def character_data(self, character):
