@@ -4,12 +4,12 @@ FONT_WIDTH      = 6
 FONT_HEIGHT     = 8
 MAX_PIXEL_VALUE = 255
 
-CHARACTERS_INDEX = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890"
+CHARACTERS_INDEX = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890"
 
 def convert_pixel(pixel):
-    return (pixel[0] + pixel[1] + pixel[2]) / (MAX_PIXEL_VALUE * 3.0)
+    return 1.0 - (pixel[0] + pixel[1] + pixel[2]) / (MAX_PIXEL_VALUE * 3.0)
 
-class Font(object):
+class PixelFont(object):
     def __init__(self, filename):
         image = Image.open(filename)
         image_data = image.getdata()
@@ -17,8 +17,16 @@ class Font(object):
         width, height = image.size
         self.image_width = width
 
-    def draw(self, string, service, red, green, blue):
-        
+    def draw(self, string, start_x, start_y, service, red, green, blue):
+        for i in range(0, len(string)):
+            character = string[i]
+            char_data = self.character_data(character)
+            for x in range(0, FONT_WIDTH):
+                for y in range(0, FONT_HEIGHT):
+                    point_x = (i * FONT_WIDTH) + x + start_x
+                    point_y = y + start_y
+                    value = char_data[x + (y * FONT_WIDTH)]
+                    service.set_pixel(point_x, point_y, value * red, value * green, value * blue)
 
     def character_data(self, character):
         index = CHARACTERS_INDEX.index(character)
@@ -33,16 +41,3 @@ class Font(object):
             array.extend(row_data)
 
         return array
-
-font = Font("font.tif")
-char_data = font.character_data('6')
-
-for y in range(0, FONT_HEIGHT):
-    line = "" 
-    for x in range(0, FONT_WIDTH):
-        character = "*"
-        if char_data[(y * FONT_WIDTH) + x] > 0:
-            character = " " 
-        line += character
-        line += " "
-    print line 

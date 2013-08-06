@@ -3,6 +3,7 @@ import random
 import time
 import redis
 import cPickle
+from pixelfont import PixelFont
 
 FRAME_KEY = 'frame'
 MAX = 255
@@ -72,9 +73,11 @@ if __name__ == '__main__':
     client = redis.Redis()
     s = Service(width=120, height=8)
 
+    font = PixelFont("font.tif")
 
     while True:
         time.sleep(0.03)
-        s.add(Ping)
+        #s.add(Ping)
+        font.draw("Dropbox Hack Week", 6, 0, s, 255, 255, 255)
         new_frame = s.step()
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
