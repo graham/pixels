@@ -24,8 +24,13 @@ def main():
     client = redis.Redis()
     toggle = True
 
+    def safe_check():
+        while client.llen(FRAME_KEY) > 50:
+            time.sleep(0.05)
+
     while True:
         time.sleep(0.05)
+        safe_check()
         frame = rand_frame()
         client.rpush(FRAME_KEY, cPickle.dumps(frame))
         toggle = not toggle
