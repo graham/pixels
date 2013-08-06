@@ -1,0 +1,11 @@
+ - Get some of this actually working on the Rasberry Pi so we don't have to share a ethernet connection.
+ - Build up our "event loop"
+ - Override Queue for office/company wide messages.
+ - Talk to a couple teams about what sort of metrics they would like to see.
+ - Talk to UserOps, Sales, and Recruiting as they likely have some fun data we can play with.
+ - More "modes of animation"
+ - Client API [graham]
+ - Move the image/font assets into a directory
+ - Clean up the core stuff and get rid of anything we are not using anymore.
+ - Tutorial and Documentation
+ - Blitter should skip frames if it is getting overloaded.
