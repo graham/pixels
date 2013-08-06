@@ -120,3 +120,9 @@ if __name__ == '__main__':
         render_offset = 20
         font.draw(text, render_offset + 0, 0, s, 255, 255, 255)
         update()
+
+    def pings():
+        while True:
+            time.sleep(0.02)
+            s.add(Ping)
+            update()
