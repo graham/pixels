@@ -68,13 +68,33 @@ class Service(object):
         self.animations = remain
         return self.pixel_map
 
+    def shift_left(self):
+        new_map = []
+
+        for i in range(0, self.height):
+            line = self.pixel_map[(self.width*i)+1:(self.width*(i+1))] + [pixel(0, 0, 0)]
+            new_map += line
+
+        self.pixel_map = new_map
+
+    def shift_right(self):
+        new_map = []
+
+        for i in range(0, self.height):
+            line = [pixel(0, 0, 0)] + self.pixel_map[(self.width*i):(self.width*(i+1))-1]
+            new_map += line
+
+        self.pixel_map = new_map
+
+    def fill(self, red, green, blue):
+        for x in range(0, self.width):
+            for y in range(0, self.height):
+                self.set_pixel(x, y, red, green, blue)
+
 if __name__ == '__main__':
     client = redis.Redis()
     s = Service(width=120, height=8)
 
-
-    while True:
-        time.sleep(0.03)
-        s.add(Ping)
+    def update():
         new_frame = s.step()
-        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
+        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))        

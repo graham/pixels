@@ -32,15 +32,9 @@ def main():
         frame_name, frame = client.blpop(FRAME_KEY)
         frame = cPickle.loads(frame)
         lines = []
-        
-        lines.append(frame[0:pixel_width])
-        lines.append(frame[pixel_width:pixel_width*2])
-        lines.append(frame[pixel_width*2:pixel_width*3])
-        lines.append(frame[pixel_width*3:pixel_width*4])
-        lines.append(frame[pixel_width*4:pixel_width*5])
-        lines.append(frame[pixel_width*5:pixel_width*6])
-        lines.append(frame[pixel_width*6:pixel_width*7])
-        lines.append(frame[pixel_width*7:pixel_width*8])
+
+        for i in range(0, 8):
+            lines.append(frame[pixel_width*i:pixel_width*(i+1)])
 
         for index in range(0, 4):
             s = struct.pack('!xxxxB', index) + ''.join(lines[index*2]) + ''.join(reversed(lines[(index*2)+1]))
