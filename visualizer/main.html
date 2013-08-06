@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
+<body>
 <center>
     <div style="margin-top:100px">
         <p>Specify # of Pixels:</p>
         Height:<input type="text" id="height" size=5 value=8>
         Width: <input type="text" id="width" size=5 value=120>
-        Pixel Size: <input type="text" id="pixel_size" size=2 style="margin-right:20px" value =10>
+        Pixel Size: <input type="text" id="pixel_size" size=2 style="margin-right:20px" value="10">
         <button onclick="resize_canvas()">Update</button>
     </div>
     <canvas id="LED" width="1200" height="80" style="border:1px solid #000000;margin-top:50px;">
@@ -13,16 +14,18 @@
     <div style="margin-top:20px">
         <button onclick="draw()">Draw</button>
     </div>
-
+</canvas>
+</center>
+</body>
+</html>
 <script>
 var c=document.getElementById("LED");
 var ctx=c.getContext("2d");
-var color = Array(10,50,150);
 var x = 0;
 var y = 0;
-var pixel_size = 10;
-var total_pixels = 960;
-var total_lines = 8;
+var pixel_size = parseInt(document.getElementById('pixel_size').value);
+var total_pixels = parseInt(document.getElementById('width').value) * parseInt(document.getElementById('height').value);
+var total_lines = parseInt(document.getElementById('height').value);
 var line_length = total_pixels / total_lines;
 var draw_array = new Array();
 
@@ -32,13 +35,16 @@ for(var i=0; i < total_pixels; i++) {
 function resize_canvas()
 {
     var ledcanvas = document.getElementById('LED');
-    pixel_size = document.getElementById('pixel_size').value
-    ledcanvas.height = document.getElementById('height').value * pixel_size;
-    ledcanvas.width = document.getElementById('width').value * pixel_size;
+    pixel_size = parseInt(document.getElementById('pixel_size').value);
+    ledcanvas.height = parseInt(document.getElementById('height').value) * pixel_size;
+    ledcanvas.width = parseInt(document.getElementById('width').value) * pixel_size;
+    total_pixels = parseInt(document.getElementById('width').value) * parseInt(document.getElementById('height').value);
+    total_lines = parseInt(document.getElementById('height').value);
+    line_length = parseInt(document.getElementById('width').value);
 }
 function draw()
 {
-    for (var i=0;i<draw_array.length;i++)
+    for (var i=0; i<draw_array.length; i++)
     {
         ctx.fillStyle="rgb("+draw_array[i][0]+","+draw_array[i][1]+","+draw_array[i][2]+")";
         ctx.fillRect(x,y,pixel_size,pixel_size);
@@ -52,7 +58,3 @@ function draw()
 }
 
 </script>
-
-</center>
-</canvas>
-</html>
