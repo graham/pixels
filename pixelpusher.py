@@ -20,9 +20,9 @@ def pixel(red, green, blue):
 def build_strip(id=0):
     return [struct.pack('!xxxxB', id)]
 
-def send_strip(ip, strip):
+def send_strip(strip, ip):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(ip, ''.join(strip))
+    sock.sendto(''.join(strip), ip)
 
 ## End functional stuff.
 
