@@ -158,6 +158,13 @@ if __name__ == '__main__':
         s.add_instance(sprite_animation)
 
         total_time = 5.0
+        last_frame_time = time.time()
         while total_time > 0:
-            update(FRAME_TIME)
-            total_time -= FRAME_TIME
+            current_time = time.time()
+            delta_time = (current_time - last_frame_time)
+            if delta_time < FRAME_TIME:
+                continue
+            
+            last_frame_time = current_time
+            update(delta_time)
+            total_time -= delta_time
