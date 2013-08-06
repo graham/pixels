@@ -146,7 +146,8 @@ if __name__ == '__main__':
     while True:
         index += 1
         s.step()
-        time.sleep(0.008)
+        time.sleep(0.01)
+
         if index % 2 == 0:
             s.animations.append( Ping(s) )
         for strip in s.strips:
