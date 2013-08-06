@@ -1,4 +1,5 @@
 from pixelpusher import pixel, bound
+from pixelfont import PixelFont
 import random
 import time
 import redis
@@ -72,9 +73,19 @@ if __name__ == '__main__':
     client = redis.Redis()
     s = Service(width=120, height=8)
 
+    font = PixelFont("font.tif")
+
+    offset = 0
 
     while True:
         time.sleep(0.03)
-        s.add(Ping)
+#        s.add(Ping)
+    
+        offset = (offset + 1) % (s.width * 2)
+        render_offset = (offset - s.width)
+
+        font.draw("IT ", render_offset + 0, 0, s, 255, 255, 255)
+        font.draw("JUST WORK", render_offset + 18, 0, s, 0, 0, 255)
+        font.draw("S", render_offset + 72, 0, s, 255, 255, 255)
         new_frame = s.step()
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
