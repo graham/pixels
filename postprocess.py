@@ -27,13 +27,13 @@ class Blur(PostProcess):
 					four_ahead = Blur.safe_get_pixel(line, service.width, (x + (4 * x_dir)))
 
 					if not is_pixel_blank(one_ahead):
-						pix = multiply_pixel(one_ahead, 0.5)
+						pix = multiply_pixel(one_ahead, 0.05)
 					elif not is_pixel_blank(two_ahead):
-						pix = multiply_pixel(two_ahead, 0.25)
+						pix = multiply_pixel(two_ahead, 0.03)
 					elif not is_pixel_blank(three_ahead):
-						pix = multiply_pixel(three_ahead, 0.10)
+						pix = multiply_pixel(three_ahead, 0.02)
 					elif not is_pixel_blank(four_ahead):
-						pix = multiply_pixel(four_ahead, 0.025)
+						pix = multiply_pixel(four_ahead, 0.01)
 
 				new_line.append(pix)
 

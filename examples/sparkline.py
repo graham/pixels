@@ -2,6 +2,7 @@ import redis
 import random
 import time
 import cPickle
+from postprocess import BlurLeft, BlurRight
 
 from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
@@ -16,6 +17,7 @@ FRAME_KEY = 'frame'
 def main():
     client = redis_conn()
     s = Service(width=120, height=8)
+    s.add_post_process(BlurRight)
 
     def safe_check():
         while client.llen(FRAME_KEY) > 50:
