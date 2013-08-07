@@ -15,7 +15,7 @@ FRAME_KEY = 'frame'
 
 def main():
     client = util.redis_conn()
-    s = Service(width=120, height=8)
+    s = Service(width=Service.DEFAULT_WIDTH, height=Service.DEFAULT_HEIGHT)
 
     def safe_check():
         while client.llen(FRAME_KEY) > 50:
