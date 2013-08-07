@@ -5,6 +5,7 @@ import cPickle
 
 from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
+from util import redis_conn
 
 MAX = 128
 MID = 128
@@ -13,7 +14,7 @@ OFF = 0
 FRAME_KEY = 'frame'
 
 def main():
-    client = redis.Redis()
+    client = redis_conn()
     s = Service(width=120, height=8)
 
     def safe_check():

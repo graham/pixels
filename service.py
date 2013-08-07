@@ -6,6 +6,8 @@ import redis
 import cPickle
 import Image
 
+from util import redis_conn
+
 FRAME_KEY = 'frame'
 MAX = 255
 MID = 128
@@ -145,7 +147,7 @@ class Service(object):
         return self.pixel_map
 
 if __name__ == '__main__':
-    client = redis.Redis()
+    client = redis_conn()
     s = Service(width=120, height=8)
 
     def safe_check():
