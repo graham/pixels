@@ -15,6 +15,16 @@ BUTTON_END = '\x1b'
 FRAME_TIME = 0.02
 FRAME_KEY = 'frame'
 
+PLAYER_MOVE_TIME = 1.0
+PLAYER_JUMP_TIME = 1.0
+GROUND_MOVE_TIME = 0.025
+
+GROUND_MIN = 10
+GROUND_MAX = 25
+
+GAP_MIN = 2
+GAP_MAX = 6
+
 def setup():
     old_settings = termios.tcgetattr(sys.stdin)
     tty.setcbreak(sys.stdin.fileno())
@@ -41,9 +51,6 @@ def handle_input(game):
 def is_data():
     return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
-def step_world(delta_time):
-    pass
-
 class GroundArray(object):
     def __init__(self):
         self.index = 0
@@ -59,8 +66,8 @@ class GroundArray(object):
         update_index = 0
 
         while True:
-            ground_length = random.randint(12, 16)
-            gap_length = random.randint(2, 6)
+            ground_length = random.randint(GROUND_MIN, GROUND_MAX)
+            gap_length = random.randint(GAP_MIN, GAP_MAX)
 
             if (self.width + (ground_length + gap_length)) > self.max_width:
                 break
@@ -75,7 +82,7 @@ class GroundArray(object):
 
             self.width += (ground_length + gap_length)
 
-    def step(self):
+    def step(self, delta_time):
         self.index += 1
 
     def steps_left(self): 
@@ -86,10 +93,17 @@ class Ground(object):
         self.arrays = [ GroundArray(), GroundArray() ]
         self.index = 0
         self.lead = lead
+        self.time_since_move = 0
 
-    def step(self):
+    def step(self, delta_time):
+        self.time_since_move += delta_time
+        if self.time_since_move < GROUND_MOVE_TIME:
+            return
+
+        self.time_since_move = 0
+
         active_array = self.arrays[self.index]
-        active_array.step()
+        active_array.step(delta_time)
         next_index = (self.index + 1) % 2
 
         if active_array.steps_left() == self.lead:
@@ -107,31 +121,60 @@ class Ground(object):
         offset_index = (index - active_array.steps_left())
         return other_array.data[offset_index]
 
+class Player(object):
+    def __init__(self):
+        self.position = [5.0, 1.0]
+        self.jump_time = 0
+        self.air_time = 0
+        self.is_jumping = False
+
+    def step(self, delta_time):
+        self.position[0] += (PLAYER_MOVE_TIME * delta_time)
+
+        if self.is_jumping:
+            self.step_jump(delta_time)
+
+    def step_jump(self, delta_time):
+        self.jump_time += delta_time
+        if self.jump_time > self.air_time:
+            self.position[1] = 1.0
+            self.is_jumping = False
+
+        inner = (2 * self.jump_time - 1)
+        y = (-(inner * inner) + 1) * 6 + 1
+        self.position[1] = y
+
+    def jump(self, air_time):
+        if self.is_jumping: 
+            return 
+
+        self.jump_time = 0
+        self.is_jumping = True
+        self.air_time = air_time
+
 class Game(object):
     def __init__(self):
         self.ground = Ground(120)
+        self.player = Player()
 
     def step(self, delta_time):
-        self.ground.step()
+        self.ground.step(delta_time)
+        self.player.step(delta_time)
 
     def update_service(self, service):
         active_array = self.ground.arrays[self.ground.index]
 
+        service.fill(0, 0, 0)
         for i in range(service.width):
-            color_red = 255
-            color_blue = 0
-            color_green = 0
-            if self.ground.index == 1:
-                color_red = 0
-                color_blue = 1
-
             if self.ground.data(i) == 1:
-                service.set_pixel(i, 7, color_red, color_green, color_blue)
-            else:
-                service.set_pixel(i, 7, 0, 0, 0)
+                service.set_pixel(i, 7, 128, 128, 128)
+
+        player_x = int(self.player.position[0])
+        player_y = int(7 - self.player.position[1])
+        service.set_pixel(player_x, player_y, 0, 0, 255)
 
     def jump(self):
-        pass
+        self.player.jump(PLAYER_JUMP_TIME)
 
 def main():
     client = redis_conn()
