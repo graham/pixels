@@ -21,8 +21,8 @@ def main():
             time.sleep(0.05)
 
     def update():
-        new_frame = s.step()
-        client.rpush(FRAME_KEY, cPickle.dumps(s.get_pixel_map()))
+        new_frame = s.step(.01)
+        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
 
     level = 0
     red, green, blue = 32,32,32
@@ -34,7 +34,7 @@ def main():
         level += random.randint(-1, 1)
         level = bound(level, 0, 8)
         s.shift_left()
-        
+
         for i in range(7, -1, -1):
             if s.height - i == level:
                 red = bound(red + random.randint(-8, 8), 0, 255)
