@@ -4,9 +4,10 @@ import cPickle
 
 from pixelfont import PixelFont
 from service import Service
+from util import redis_conn
 
 def main():
-    client = redis.Redis()
+    client = redis_conn()
     s = Service(width=120, height=8)
     font = PixelFont("font.tif")
     text = 'IT JUST WORKS'

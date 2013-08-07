@@ -5,6 +5,7 @@ import cPickle
 
 from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
+from util import redis_conn
 
 MAX = 128
 MID = 128
@@ -13,19 +14,23 @@ OFF = 0
 FRAME_KEY = 'frame'
 
 def main():
-    client = redis.Redis()
+    client = redis_conn()
     s = Service(width=120, height=8)
+
+    def safe_check():
+        while client.llen(FRAME_KEY) > 50:
+            time.sleep(0.05)
 
     def update():
         new_frame = s.step(.01)
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
 
     level = 0
-
     red, green, blue = 32,32,32
 
     while True:
-        time.sleep(0.02)
+        time.sleep(0.01)
+        safe_check()
 
         level += random.randint(-1, 1)
         level = bound(level, 0, 8)

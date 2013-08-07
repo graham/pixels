@@ -2,6 +2,7 @@ import struct
 import socket
 
 def bound(value, bottom, top):
+    value = int(value)
     if value < bottom:
         return bottom
     if value > top:

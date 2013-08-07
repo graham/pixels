@@ -4,6 +4,7 @@ import time
 import cPickle
 
 from pixelpusher import pixel, build_strip, send_strip
+from util import redis_conn
 
 MAX = 32
 MID = 128
@@ -21,7 +22,7 @@ def rand_frame():
     return [rand_pixel() for i in range(120 * 8)]
 
 def main():
-    client = redis.Redis()
+    client = redis_conn()
     toggle = True
 
     def safe_check():

@@ -7,6 +7,8 @@ import redis
 import cPickle
 import Image
 
+from util import redis_conn
+
 FRAME_KEY = 'frame'
 MAX = 255
 MID = 128
@@ -31,7 +33,7 @@ class Ping(Animation):
         self.green = bound(random.randint(-MID, MAX), OFF, MID)
         self.loc = [random.randint(0, service.width-1), random.randint(0, service.height-1)]
 
-    def step(self, service, delta_time):
+    def step(self, service, delta_time=0):
         service.set_pixel(self.loc[0], self.loc[1], int(self.red * self.level), int(self.green * self.level), int(self.blue * self.level))
 
         ## change the decay based on power.
@@ -102,7 +104,7 @@ class Service(object):
     def clear_post_process(self):
         self.post_process = []
 
-    def step(self, delta_time):
+    def step(self, delta_time=0):
         remain = []
         drop = []
         for i in self.animations:
@@ -114,7 +116,7 @@ class Service(object):
 
         self.animations = remain
 
-        return_map = self.pixel_map
+        return_map = self.get_pixel_map()
         for i in self.post_process:
             return_map = i.apply(self, return_map)
 
@@ -154,8 +156,11 @@ class Service(object):
             for y in range(0, self.height):
                 self.set_pixel(x, y, red, green, blue)
 
+    def get_pixel_map(self):
+        return self.pixel_map
+
 if __name__ == '__main__':
-    client = redis.Redis()
+    client = redis_conn()
     s = Service(width=120, height=8)
 
     def add_blur_left():

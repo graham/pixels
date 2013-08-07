@@ -3,8 +3,13 @@ import redis
 import cPickle
 import json
 import struct
+import os
 
-client = redis.Redis()
+def redis_conn():
+    host = os.environ.get('REDISHOST', '127.0.0.1')
+    return redis.Redis(host=host)
+
+client = redis_conn()
 FRAME_KEY = 'frame'
 pixel_width=120
 
