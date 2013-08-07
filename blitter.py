@@ -26,7 +26,7 @@ def main():
     prep_client(client)
 
     pixel_width = 120
-    delay = 0.0005
+    delay = 0.001
 
     while True:
         frame_name, frame = client.blpop(FRAME_KEY)

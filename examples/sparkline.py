@@ -16,16 +16,20 @@ def main():
     client = redis.Redis()
     s = Service(width=120, height=8)
 
+    def safe_check():
+        while client.llen(FRAME_KEY) > 50:
+            time.sleep(0.05)
+
     def update():
         new_frame = s.step()
-        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))        
+        client.rpush(FRAME_KEY, cPickle.dumps(s.get_pixel_map()))
 
     level = 0
-
     red, green, blue = 32,32,32
 
     while True:
-        time.sleep(0.02)
+        time.sleep(0.01)
+        safe_check()
 
         level += random.randint(-1, 1)
         level = bound(level, 0, 8)

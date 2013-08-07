@@ -30,7 +30,7 @@ class Ping(Animation):
         self.green = bound(random.randint(-MID, MAX), OFF, MID)
         self.loc = [random.randint(0, service.width-1), random.randint(0, service.height-1)]
 
-    def step(self, service, delta_time):
+    def step(self, service, delta_time=0):
         service.set_pixel(self.loc[0], self.loc[1], int(self.red * self.level), int(self.green * self.level), int(self.blue * self.level))
 
         ## change the decay based on power.
@@ -94,7 +94,7 @@ class Service(object):
     def add_instance(self, ani_instance):
         self.animations.append(ani_instance)
 
-    def step(self, delta_time):
+    def step(self, delta_time=0):
         remain = []
         drop = []
         for i in self.animations:
@@ -105,7 +105,7 @@ class Service(object):
                 drop.append(i)
 
         self.animations = remain
-        return self.pixel_map
+        return self.get_pixel_map()
 
     def shift_left(self):
         new_map = []
@@ -129,6 +129,9 @@ class Service(object):
         for x in range(0, self.width):
             for y in range(0, self.height):
                 self.set_pixel(x, y, red, green, blue)
+
+    def get_pixel_map(self):
+        return self.pixel_map
 
 if __name__ == '__main__':
     client = redis.Redis()
