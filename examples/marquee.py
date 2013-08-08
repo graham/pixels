@@ -8,7 +8,7 @@ from util import redis_conn
 
 def main():
     client = redis_conn()
-    s = Service(width=120, height=8)
+    s = Service(width=Service.DEFAULT_WIDTH, height=Service.DEFAULT_HEIGHT)
     font = PixelFont("font.tif")
     text = 'IT JUST WORKS'
     client.set('message', text)
