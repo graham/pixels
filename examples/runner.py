@@ -7,6 +7,7 @@ import random
 import time
 import math
 import cPickle
+import pygame
 
 from pixelfont import PixelFont
 from pixelpusher import pixel, build_strip, send_strip, bound
@@ -39,22 +40,6 @@ GROUND_MAX = 25
 
 GAP_MIN = 3
 GAP_MAX = 5
-
-def setup():
-    old_settings = termios.tcgetattr(sys.stdin)
-    tty.setcbreak(sys.stdin.fileno())
-    return old_settings
-
-def teardown(old_settings):
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-
-def get_input():
-    if is_data():
-        c = sys.stdin.read(1)
-        return c
-
-def is_data():
-    return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
 class GroundArray(object):
     def __init__(self, num_first_ground=None):
@@ -292,9 +277,25 @@ class MainLoop(object):
         self.client = redis_conn()
         self.service = Service(width=116, height=8)
         self.game = Game()
+        self.old_settings = None
+
+    def setup(self):
+        self.old_settings = termios.tcgetattr(sys.stdin)
+        tty.setcbreak(sys.stdin.fileno())
+
+    def teardown(self):
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
+
+    def is_data(self):
+        return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
+
+    def get_input(self):
+        if self.is_data():
+            c = sys.stdin.read(1)
+            return c
 
     def handle_input(self):
-        c = get_input()
+        c = self.get_input()
         if c == BUTTON_END:
             return True
 
@@ -332,10 +333,12 @@ class MainLoop(object):
             if should_exit:
                 break
 
+
+main = MainLoop()
+
 try:
-    old_settings = setup()
-    main = MainLoop()
+    main.setup()
     main.run()
 
 finally:
-    teardown(old_settings)
+    main.teardown()
