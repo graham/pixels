@@ -13,7 +13,11 @@ from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
 from util import redis_conn
 
-BUTTON_END = '\x1b'
+BUTTON_END      = '\x1b'
+BUTTON_JUMP     = ' '
+BUTTON_RESTART  = "\n"
+
+
 FRAME_TIME = 0.01
 FRAME_KEY = 'frame'
 
@@ -48,16 +52,6 @@ def get_input():
     if is_data():
         c = sys.stdin.read(1)
         return c
-
-def handle_input(game):
-    c = get_input()
-    if c == BUTTON_END:
-        return True
-
-    if c == ' ':
-        game.jump()
-
-    return False
 
 def is_data():
     return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
@@ -293,35 +287,55 @@ class Game(object):
     def jump(self):
         self.player.jump(PLAYER_JUMP_TIME)
 
-def main():
-    client = redis_conn()
-    service = Service(width=116, height=8)
-    game = Game()
+class MainLoop(object):
+    def __init__(self):
+        self.client = redis_conn()
+        self.service = Service(width=116, height=8)
+        self.game = Game()
 
-    def update_buffer():
-        game.update_service(service)
-        new_frame = service.step()
-        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
+    def handle_input(self):
+        c = get_input()
+        if c == BUTTON_END:
+            return True
 
-    last_frame_time = time.time()
-    while 1:
-        current_time = time.time()
-        delta_time = (current_time - last_frame_time)
-        if delta_time < FRAME_TIME:
-            continue
+        if c == BUTTON_JUMP:
+            self.game.jump()
 
-        last_frame_time = current_time
+        if c == BUTTON_RESTART:
+            self.game = Game()
 
-        handle_input(game)
-        game.step(delta_time)
-        update_buffer()
+        return False
 
-        if game.is_over:
-            break
+    def update_buffer(self):
+        self.game.update_service(self.service)
+        new_frame = self.service.step()
+        self.client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
+
+    def run(self):
+        last_frame_time = time.time()
+        while 1:
+            current_time = time.time()
+            delta_time = (current_time - last_frame_time)
+            if delta_time < FRAME_TIME:
+                continue
+
+            last_frame_time = current_time
+
+            should_exit = self.handle_input()
+
+            if self.game.is_over:
+                continue
+
+            self.game.step(delta_time)
+            self.update_buffer()
+
+            if should_exit:
+                break
 
 try:
     old_settings = setup()
-    main()
+    main = MainLoop()
+    main.run()
 
 finally:
     teardown(old_settings)
