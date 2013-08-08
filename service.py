@@ -78,6 +78,9 @@ class SpriteAnimation(Animation):
         return True
 
 class Service(object):
+    DEFAULT_WIDTH = 116
+    DEFAULT_HEIGHT = 8
+
     def __init__(self, width, height):
         self.width = width
         self.height = height
@@ -148,7 +151,7 @@ class Service(object):
 
 if __name__ == '__main__':
     client = redis_conn()
-    s = Service(width=120, height=8)
+    s = Service(width=Service.DEFAULT_WIDTH, height=Service.DEFAULT_HEIGHT)
 
     def safe_check():
         while client.llen(FRAME_KEY) > 50:

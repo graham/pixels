@@ -25,7 +25,7 @@ def main():
     client = redis.Redis()
     prep_client(client)
 
-    pixel_width = 120
+    pixel_width = 116
     delay = 0.001
 
     while True:
