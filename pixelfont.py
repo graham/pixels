@@ -4,7 +4,7 @@ FONT_WIDTH      = 6
 FONT_HEIGHT     = 8
 MAX_PIXEL_VALUE = 255
 
-CHARACTERS_INDEX = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890!?."
+CHARACTERS_INDEX = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?."
 
 def convert_pixel(pixel):
     return 1.0 - (pixel[0] + pixel[1] + pixel[2]) / (MAX_PIXEL_VALUE * 3.0)

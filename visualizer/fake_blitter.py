@@ -11,7 +11,7 @@ def redis_conn():
 
 client = redis_conn()
 FRAME_KEY = 'frame'
-pixel_width=120
+pixel_width=116
 
 @route('/')
 def index():
