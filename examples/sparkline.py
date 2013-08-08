@@ -16,7 +16,7 @@ FRAME_KEY = 'frame'
 
 def main():
     client = redis_conn()
-    s = Service(width=120, height=8)
+    s = Service(width=Service.DEFAULT_WIDTH, height=Service.DEFAULT_HEIGHT)
     s.add_post_process(BlurRight)
 
     def safe_check():

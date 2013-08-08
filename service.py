@@ -79,6 +79,9 @@ class SpriteAnimation(Animation):
         return True
 
 class Service(object):
+    DEFAULT_WIDTH = 116
+    DEFAULT_HEIGHT = 8
+
     def __init__(self, width, height):
         self.width = width
         self.height = height
@@ -161,7 +164,7 @@ class Service(object):
 
 if __name__ == '__main__':
     client = redis_conn()
-    s = Service(width=120, height=8)
+    s = Service(width=Service.DEFAULT_WIDTH, height=Service.DEFAULT_HEIGHT)
 
     def add_blur_left():
         s.add_post_process(BlurLeft)
@@ -180,7 +183,7 @@ if __name__ == '__main__':
         new_frame = s.step(delta_time)
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
 
-    font = PixelFont("font.tif")
+    font = PixelFont("images/font.tif")
 
     def justworks():
         render_offset = 20
@@ -194,9 +197,24 @@ if __name__ == '__main__':
         font.draw(text, render_offset + 0, 0, s, 255, 255, 255)
         update()
 
+    def run():
+        sprite_animation = SpriteAnimation(s)
+        sprite_animation.init("images/run16.png", 16, 16, 0.025)
+        s.add_instance(sprite_animation)
+
+        last_frame_time = time.time()
+        while True:
+            current_time = time.time()
+            delta_time = (current_time - last_frame_time)
+            if delta_time < FRAME_TIME:
+                continue
+            
+            last_frame_time = current_time
+            update(delta_time)
+
     def wizard():
         sprite_animation = SpriteAnimation(s)
-        sprite_animation.init("animation.png", 16, 8, 0.5)
+        sprite_animation.init("images/animation.png", 16, 8, 0.5)
         s.add_instance(sprite_animation)
 
         total_time = 5.0
