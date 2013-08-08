@@ -5,19 +5,26 @@ import termios
 import redis
 import random
 import time
+import math
 import cPickle
 
+from pixelfont import PixelFont
 from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
 from util import redis_conn
 
 BUTTON_END = '\x1b'
-FRAME_TIME = 0.02
+FRAME_TIME = 0.01
 FRAME_KEY = 'frame'
 
 PLAYER_MOVE_TIME = 1.0
-PLAYER_JUMP_TIME = 1.0
-GROUND_MOVE_TIME = 0.025
+PLAYER_JUMP_TIME = 0.4
+PLAYER_START_X   = 15.0
+PLAYER_START_Y   = 1.0
+PLAYER_JUMP_HEIGHT  = 5
+
+GROUND_MOVE_TIME = 0.03
+GROUND_ADJUST_TIME = 1500
 
 GROUND_MIN = 10
 GROUND_MAX = 25
@@ -52,14 +59,14 @@ def is_data():
     return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
 class GroundArray(object):
-    def __init__(self):
+    def __init__(self, num_first_ground=None):
         self.index = 0
         self.width = 0
         self.max_width = 256
         self.data = [ 0 for i in range(self.max_width) ]
-        self.generate_ground()
+        self.generate_ground(num_first_ground)
 
-    def generate_ground(self):
+    def generate_ground(self, num_first_ground=None):
         self.index = 0
         self.width = 0
 
@@ -68,6 +75,10 @@ class GroundArray(object):
         while True:
             ground_length = random.randint(GROUND_MIN, GROUND_MAX)
             gap_length = random.randint(GAP_MIN, GAP_MAX)
+
+            if num_first_ground:
+                ground_length = num_first_ground
+                num_first_ground = None
 
             if (self.width + (ground_length + gap_length)) > self.max_width:
                 break
@@ -90,14 +101,15 @@ class GroundArray(object):
 
 class Ground(object):
     def __init__(self, lead):
-        self.arrays = [ GroundArray(), GroundArray() ]
+        self.arrays = [ GroundArray(32), GroundArray() ]
         self.index = 0
         self.lead = lead
         self.time_since_move = 0
+        self.move_time = GROUND_MOVE_TIME
 
     def step(self, delta_time):
         self.time_since_move += delta_time
-        if self.time_since_move < GROUND_MOVE_TIME:
+        if self.time_since_move < self.move_time:
             return
 
         self.time_since_move = 0
@@ -123,7 +135,7 @@ class Ground(object):
 
 class Player(object):
     def __init__(self):
-        self.position = [5.0, 1.0]
+        self.position = [PLAYER_START_X, PLAYER_START_Y]
         self.jump_time = 0
         self.air_time = 0
         self.is_jumping = False
@@ -139,9 +151,10 @@ class Player(object):
         if self.jump_time > self.air_time:
             self.position[1] = 1.0
             self.is_jumping = False
+            return
 
-        inner = (2 * self.jump_time - 1)
-        y = (-(inner * inner) + 1) * 6 + 1
+        inner = (2 / PLAYER_JUMP_TIME * self.jump_time - 1)
+        y = (-(inner * inner) + 1) * PLAYER_JUMP_HEIGHT + 1
         self.position[1] = y
 
     def jump(self, air_time):
@@ -156,10 +169,29 @@ class Game(object):
     def __init__(self):
         self.ground = Ground(120)
         self.player = Player()
+        self.font = PixelFont("font.tif")
+        self.is_over = False
 
     def step(self, delta_time):
+        self.ground.move_time = (GROUND_ADJUST_TIME - self.get_score()) * GROUND_MOVE_TIME / 1000.0
+
         self.ground.step(delta_time)
         self.player.step(delta_time)
+
+        if self.is_player_dead():
+            self.is_over = True
+
+    def is_player_dead(self):
+        if self.player.is_jumping:
+            return False
+
+        player_x = int(math.floor(self.player.position[0]))
+        ground = self.ground.data(player_x)
+
+        return (ground == 0)
+
+    def get_score(self): 
+        return (self.player.position[0] - PLAYER_START_X) * 10
 
     def update_service(self, service):
         active_array = self.ground.arrays[self.ground.index]
@@ -169,16 +201,23 @@ class Game(object):
             if self.ground.data(i) == 1:
                 service.set_pixel(i, 7, 128, 128, 128)
 
-        player_x = int(self.player.position[0])
-        player_y = int(7 - self.player.position[1])
+        player_x = int(math.floor(self.player.position[0]))
+        player_y = int(math.floor(7 - self.player.position[1]))
+
+        if self.is_over:
+            player_y = 7
+
         service.set_pixel(player_x, player_y, 0, 0, 255)
+
+        score = self.get_score()
+        self.font.draw(str(int(score)), 0, 0, service, 255, 0, 0)
 
     def jump(self):
         self.player.jump(PLAYER_JUMP_TIME)
 
 def main():
     client = redis_conn()
-    service = Service(width=120, height=8)
+    service = Service(width=116, height=8)
     game = Game()
 
     def update_buffer():
@@ -198,6 +237,9 @@ def main():
         handle_input(game)
         game.step(delta_time)
         update_buffer()
+
+        if game.is_over:
+            break
 
 try:
     old_settings = setup()
