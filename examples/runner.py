@@ -21,14 +21,14 @@ PLAYER_MOVE_TIME = 1.0
 PLAYER_JUMP_TIME = 0.4
 PLAYER_START_X   = 15.0
 PLAYER_START_Y   = 1.0
-PLAYER_JUMP_HEIGHT  = 5
+PLAYER_JUMP_HEIGHT  = 4
 
 COUNT_DOWN_TIME = 3.0
 
 GROUND_MOVE_TIME = 0.03
 GROUND_ADJUST_TIME = 1500
 
-BACKGROUND_MOVE_MULTIPLIER = 7.0
+BACKGROUND_MOVE_MULTIPLIER = 10.0
 
 GROUND_MIN = 10
 GROUND_MAX = 25
@@ -285,6 +285,7 @@ class Game(object):
             player_y = 7
 
         service.set_pixel(player_x, player_y, 0, 0, 255)
+        service.set_pixel(player_x, player_y - 1, 0, 0, 255)
 
         number = self.get_number()
         self.font.draw(str(int(number)), 0, 0, service, 255, 0, 0)
