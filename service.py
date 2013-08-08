@@ -1,5 +1,6 @@
 from pixelpusher import pixel, bound
 from pixelfont import PixelFont
+from postprocess import BlurLeft, BlurRight
 import random
 import time
 import redis
@@ -86,6 +87,7 @@ class Service(object):
         self.height = height
         self.pixel_map = [ pixel(0, 0, 0) for i in range( width * height ) ]
         self.animations = []
+        self.post_process = []
 
     def set_pixel(self, x, y, red, green, blue):
         index = (y * self.width) + x
@@ -99,6 +101,12 @@ class Service(object):
     def add_instance(self, ani_instance):
         self.animations.append(ani_instance)
 
+    def add_post_process(self, post_process):
+        self.post_process.append(post_process)
+
+    def clear_post_process(self):
+        self.post_process = []
+
     def step(self, delta_time=0):
         remain = []
         drop = []
@@ -110,7 +118,12 @@ class Service(object):
                 drop.append(i)
 
         self.animations = remain
-        return self.get_pixel_map()
+
+        return_map = self.get_pixel_map()
+        for i in self.post_process:
+            return_map = i.apply(self, return_map)
+
+        return return_map
 
     def shift_left(self):
         new_map = []
@@ -152,6 +165,14 @@ class Service(object):
 if __name__ == '__main__':
     client = redis_conn()
     s = Service(width=Service.DEFAULT_WIDTH, height=Service.DEFAULT_HEIGHT)
+
+    def add_blur_left():
+        s.add_post_process(BlurLeft)
+        update()
+
+    def clear_post_process():
+        s.clear_post_process()
+        update()
 
     def safe_check():
         while client.llen(FRAME_KEY) > 50:
