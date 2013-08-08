@@ -23,6 +23,8 @@ PLAYER_START_X   = 15.0
 PLAYER_START_Y   = 1.0
 PLAYER_JUMP_HEIGHT  = 5
 
+COUNT_DOWN_TIME = 3.0
+
 GROUND_MOVE_TIME = 0.03
 GROUND_ADJUST_TIME = 1500
 
@@ -224,10 +226,16 @@ class Game(object):
         self.background = Background()
         self.ground = Ground(120)
         self.player = Player()
-        self.font = PixelFont("font.tif")
+        self.font = PixelFont("images/font.tif")
         self.is_over = False
+        self.total_time = 0.0
 
     def step(self, delta_time):
+        self.total_time += delta_time
+
+        if self.is_in_countdown():
+            return
+
         self.ground.move_time = (GROUND_ADJUST_TIME - self.get_score()) * GROUND_MOVE_TIME / 1000.0
         self.background.move_time = (self.ground.move_time * BACKGROUND_MOVE_MULTIPLIER)
 
@@ -238,6 +246,9 @@ class Game(object):
         if self.is_player_dead():
             self.is_over = True
 
+    def is_in_countdown(self):
+        return self.total_time < COUNT_DOWN_TIME
+
     def is_player_dead(self):
         if self.player.is_jumping:
             return False
@@ -246,6 +257,14 @@ class Game(object):
         ground = self.ground.data(player_x)
 
         return (ground == 0)
+
+    def get_number(self):
+        if self.is_in_countdown():
+            return self.get_countdown()
+        return self.get_score()
+
+    def get_countdown(self):
+        return int(math.ceil(COUNT_DOWN_TIME - self.total_time))
 
     def get_score(self): 
         return (self.player.position[0] - PLAYER_START_X) * 10
@@ -267,8 +286,8 @@ class Game(object):
 
         service.set_pixel(player_x, player_y, 0, 0, 255)
 
-        score = self.get_score()
-        self.font.draw(str(int(score)), 0, 0, service, 255, 0, 0)
+        number = self.get_number()
+        self.font.draw(str(int(number)), 0, 0, service, 255, 0, 0)
 
     def jump(self):
         self.player.jump(PLAYER_JUMP_TIME)
