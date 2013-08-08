@@ -26,11 +26,13 @@ PLAYER_JUMP_HEIGHT  = 5
 GROUND_MOVE_TIME = 0.03
 GROUND_ADJUST_TIME = 1500
 
+BACKGROUND_MOVE_MULTIPLIER = 7.0
+
 GROUND_MIN = 10
 GROUND_MAX = 25
 
-GAP_MIN = 2
-GAP_MAX = 6
+GAP_MIN = 3
+GAP_MAX = 5
 
 def setup():
     old_settings = termios.tcgetattr(sys.stdin)
@@ -133,6 +135,58 @@ class Ground(object):
         offset_index = (index - active_array.steps_left())
         return other_array.data[offset_index]
 
+class Background(object):
+    def __init__(self):
+        self.index = 0
+        self.width = 256
+        self.array = [ 0 for i in range(self.width) ]
+        self.generate_background()
+        self.move_time = BACKGROUND_MOVE_MULTIPLIER * GROUND_MOVE_TIME
+        self.time_since_move = 0
+
+    def generate_background(self):
+        previous_level = 0
+
+        for i in range(self.width):
+            level = previous_level
+            level += random.randint(-1, 1)
+            level = bound(level, 1, 8)
+
+            self.array[i] = level
+            previous_level = level
+
+    def step(self, delta_time):
+        self.time_since_move += delta_time
+        if self.time_since_move < self.move_time:
+            return
+
+        self.time_since_move = 0
+
+        previous_index = self.index
+        self.index = (self.index + 1) % self.width
+
+        self.calculate_index(previous_index)
+
+    def data(self, index):
+        return self.array[(self.index + index) % self.width]
+
+    def calculate_index(self, index):
+        previous_index = ((index - 1) % self.width)
+        previous_level = self.array[previous_index]
+        level = previous_level
+        level += random.randint(-1, 1)
+        level = bound(level, 1, 8)
+        self.array[index] = level
+
+    def draw(self, service):
+        for i in range(service.width):
+            level = self.data(i)
+            for h in range(8):
+                green = 0
+                if h >= level and h != 7: 
+                    green = 1 * (7 - (h - level))
+                service.set_pixel(i, h, 0, green, 0)
+
 class Player(object):
     def __init__(self):
         self.position = [PLAYER_START_X, PLAYER_START_Y]
@@ -167,6 +221,7 @@ class Player(object):
 
 class Game(object):
     def __init__(self):
+        self.background = Background()
         self.ground = Ground(120)
         self.player = Player()
         self.font = PixelFont("font.tif")
@@ -174,7 +229,9 @@ class Game(object):
 
     def step(self, delta_time):
         self.ground.move_time = (GROUND_ADJUST_TIME - self.get_score()) * GROUND_MOVE_TIME / 1000.0
+        self.background.move_time = (self.ground.move_time * BACKGROUND_MOVE_MULTIPLIER)
 
+        self.background.step(delta_time)
         self.ground.step(delta_time)
         self.player.step(delta_time)
 
@@ -196,7 +253,8 @@ class Game(object):
     def update_service(self, service):
         active_array = self.ground.arrays[self.ground.index]
 
-        service.fill(0, 0, 0)
+        self.background.draw(service)
+
         for i in range(service.width):
             if self.ground.data(i) == 1:
                 service.set_pixel(i, 7, 128, 128, 128)
