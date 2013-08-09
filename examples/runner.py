@@ -14,6 +14,9 @@ from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
 from util import redis_conn
 
+JUMP_BUTTONS = [ pygame.K_q, pygame.K_RIGHTBRACKET, pygame.K_v, pygame.K_m ]
+PLAYER_COLORS = [ [0, 0, 255], [255, 0, 0], [192, 0, 192], [255, 192, 255] ]
+
 KEY_BUTTON_JUMP      = pygame.K_SPACE
 KEY_BUTTON_RESET     = pygame.K_RETURN
 KEY_BUTTON_EXIT      = pygame.K_ESCAPE
@@ -28,6 +31,7 @@ FRAME_KEY = 'frame'
 PLAYER_SPEED = 1.0
 PLAYER_JUMP_TIME = 0.4
 PLAYER_START_X   = 15.0
+PLAYER_X_SPACE = 2.0
 PLAYER_START_Y   = 1.0
 PLAYER_JUMP_HEIGHT  = 4
 
@@ -172,13 +176,20 @@ class Background(object):
                 service.set_pixel(i, h, 0, green, 0)
 
 class Player(object):
-    def __init__(self):
+    def __init__(self, jump_button):
         self.position = [PLAYER_START_X, PLAYER_START_Y]
+        self.jump_button = jump_button
+        self.color = PLAYER_COLORS[JUMP_BUTTONS.index(jump_button)]
         self.jump_time = 0
+        self.is_alive = True
         self.air_time = 0
         self.is_jumping = False
+        self.is_jump_pressed = False
 
     def step(self, delta_time):
+        if not self.is_alive: 
+            return
+
         self.position[0] += (PLAYER_SPEED * delta_time)
 
         if self.is_jumping:
@@ -210,17 +221,29 @@ class Player(object):
         if self.jump_time < (self.air_time * 0.5):
             self.jump_time = (self.air_time * 0.5)
 
+    def jump_pressed(self):
+        if self.is_jumping:
+            self.is_jump_pressed = True
+        else:
+            self.jump()
+
+    def jump_released(self):
+        self.is_jump_pressed = False
+        self.fall()
+
 class Game(object):
     def __init__(self):
         self.background = Background()
         self.ground = Ground(120)
-        self.player = Player()
+        self.players = []
+        self.winner_player = None
         self.font = PixelFont("images/font.tif")
-        self.is_over = False
         self.total_time = 0.0
-        self.is_jump_pressed = False
 
     def step(self, delta_time):
+        if len(self.players) == 0:
+            return
+
         self.total_time += delta_time
 
         if self.is_in_countdown():
@@ -228,27 +251,66 @@ class Game(object):
 
         self.background.step(delta_time)
         self.ground.step(delta_time)
-        self.player.step(delta_time)
 
-        self.check_player_ground()
+        for index, player in enumerate(self.players):
+            player.step(delta_time)
+            self.check_player_ground(player)
 
     def is_in_countdown(self):
         return self.total_time < COUNT_DOWN_TIME
 
-    def check_player_ground(self):
-        if self.player.is_jumping:
+    def kill_player(self, dying_player):
+        dying_player.is_alive = False
+
+        found_live_player = False
+        for index, player in enumerate(self.players):
+            if player.is_alive:
+                found_live_player = True
+
+        if not found_live_player:
+            self.winner_player = dying_player
+
+    def is_over(self):
+        return (self.winner_player != None)
+
+    def check_player_ground(self, player):
+        if not player.is_alive:
             return
 
-        player_x = int(math.floor(self.player.position[0]))
+        if player.is_jumping:
+            return
+
+        player_x = int(math.floor(player.position[0]))
         ground = self.ground.data(player_x)
 
         if ground == 0:
-            self.is_over = True
+            self.kill_player(player)
             return
 
-        if self.is_jump_pressed:
-            self.is_jump_pressed = False
-            self.player.jump()
+        if player.is_jump_pressed:
+            player.is_jump_pressed = False
+            player.jump()
+
+    def player_for_jump_button(self, button):
+        for index, player in enumerate(self.players):
+            if player.jump_button == button:
+                return player
+
+        return None
+
+    def player_max_x(self):
+        x_position = (PLAYER_START_X - PLAYER_X_SPACE)
+
+        for index, player in enumerate(self.players):
+            if player.is_alive:
+                x_position = max(x_position, player.position[0])
+
+        return x_position
+
+    def add_player(self, button):
+        player = Player(button)
+        player.position[0] = (self.player_max_x() + PLAYER_X_SPACE)
+        self.players.append(player)
 
     def get_number(self):
         if self.is_in_countdown():
@@ -259,7 +321,22 @@ class Game(object):
         return int(math.ceil(COUNT_DOWN_TIME - self.total_time))
 
     def get_score(self): 
-        return (self.player.position[0] - PLAYER_START_X) * 10
+        if self.winner_player:
+            return (self.winner_player.position[0] - PLAYER_START_X) * 10
+
+        return (self.player_max_x() - PLAYER_START_X) * 10
+
+    def draw_player(self, player, service):
+        player_x = int(math.floor(player.position[0]))
+        player_y = int(math.floor(7 - player.position[1]))
+
+        if player == self.winner_player and len(self.players) != 1:
+            player_y = 5
+        elif not player.is_alive:
+            player_y = 7
+
+        service.set_pixel(player_x, player_y, player.color[0], player.color[1], player.color[2])
+        service.set_pixel(player_x, player_y - 1, player.color[0], player.color[1], player.color[2])
 
     def update_service(self, service):
         active_array = self.ground.arrays[self.ground.index]
@@ -270,27 +347,28 @@ class Game(object):
             if self.ground.data(i) == 1:
                 service.set_pixel(i, 7, 128, 128, 128)
 
-        player_x = int(math.floor(self.player.position[0]))
-        player_y = int(math.floor(7 - self.player.position[1]))
+        for index, player in enumerate(self.players):
+            if not player.is_alive:
+                self.draw_player(player, service)
 
-        if self.is_over:
-            player_y = 7
-
-        service.set_pixel(player_x, player_y, 0, 0, 255)
-        service.set_pixel(player_x, player_y - 1, 0, 0, 255)
+        for index, player in enumerate(self.players):
+            if player.is_alive:
+                self.draw_player(player, service)
 
         number = self.get_number()
         self.font.draw(str(int(number)), 0, 0, service, 255, 0, 0)
 
-    def jump_pressed(self):
-        if self.player.is_jumping:
-            self.is_jump_pressed = True
-        else:
-            self.player.jump()
+    def jump_pressed(self, button):
+        player = self.player_for_jump_button(button)
+        if player:
+            player.jump_pressed()
+        elif self.is_in_countdown:
+            self.add_player(button)
 
-    def jump_released(self):
-        self.is_jump_pressed = False
-        self.player.fall()
+    def jump_released(self, button):
+        player = self.player_for_jump_button(button)
+        if player:
+            player.jump_released()
 
 class MainLoop(object):
     def __init__(self):
@@ -320,11 +398,12 @@ class MainLoop(object):
             is_key_down = (event.type == pygame.KEYDOWN)
             is_key_up = (event.type == pygame.KEYUP)
 
-            if ((is_joy_down and event.button == JOY_BUTTON_JUMP) or (is_key_down and event.key == KEY_BUTTON_JUMP)):
-                self.game.jump_pressed()
-            elif ((is_joy_up and event.button == JOY_BUTTON_JUMP) or (is_key_up and event.key == KEY_BUTTON_JUMP)):
-                self.game.jump_released()
-            elif ((is_joy_down and event.button == JOY_BUTTON_RESET) or (is_key_down and event.key == KEY_BUTTON_RESET)):
+            if is_key_down and event.key in JUMP_BUTTONS:
+                self.game.jump_pressed(event.key)
+            elif is_key_up and event.key in JUMP_BUTTONS:
+                self.game.jump_released(event.key)
+
+            if ((is_joy_down and event.button == JOY_BUTTON_RESET) or (is_key_down and event.key == KEY_BUTTON_RESET)):
                 self.game = Game()
             elif ((is_joy_down and event.button == JOY_BUTTON_EXIT) or (is_key_down and event.key == KEY_BUTTON_EXIT)):
                 self.should_exit = True
@@ -346,7 +425,7 @@ class MainLoop(object):
 
             self.handle_input()
 
-            if self.game.is_over:
+            if self.game.is_over():
                 continue
 
             self.game.step(delta_time)

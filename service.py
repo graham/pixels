@@ -236,3 +236,27 @@ if __name__ == '__main__':
             s.add(Ping)
             s.add(Ping)
             update()
+
+    def white():
+        s.fill(255, 255, 255)
+        update()
+
+    def to_black():
+        level = 1.0
+        adjust = 0.01
+        frame = 0.025
+        while level > 0: 
+            level -= adjust
+            s.fill(255.0 * level, 255.0 * level, 255.0 * level)
+            update()
+            time.sleep(frame)
+
+    def intro():
+        white()
+        time.sleep(3.0)
+        to_black()
+        time.sleep(1.0)
+        justworks()
+
+
+

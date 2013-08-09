@@ -8,7 +8,9 @@ from pixelpusher import pixel, build_strip, send_strip
 
 import sys
 
-IP = '192.168.0.99'
+IP = '192.168.0.101'
+IPS = ['192.168.0.99', '192.168.0.100', '192.168.0.101', '192.168.0.102']
+
 PORT = 9897
     
 MAX = 255
@@ -38,7 +40,9 @@ def main():
 
         for index in range(0, 4):
             s = struct.pack('!xxxxB', index) + ''.join(lines[index*2]) + ''.join(reversed(lines[(index*2)+1]))
-            send_strip(''.join(s), (IP, PORT))
+
+            for index, ip in enumerate(IPS):
+                send_strip(''.join(s), (ip, PORT))
             time.sleep(delay)
     
 if __name__ == "__main__":
