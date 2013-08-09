@@ -18,6 +18,16 @@ def pixel(red, green, blue):
 
     return struct.pack('!BBB', red, green, blue)
 
+def is_pixel_blank(pixel):
+    return pixel == '\x00\x00\x00'
+
+def multiply_pixel(pix, mult): 
+    p = struct.unpack('!BBB', pix)
+    r = p[0] * mult
+    g = p[1] * mult
+    b = p[2] * mult
+    return pixel(r, g, b)
+
 def build_strip(id=0):
     return [struct.pack('!xxxxB', id)]
 
