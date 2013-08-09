@@ -14,10 +14,13 @@ from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
 from util import redis_conn
 
-BUTTON_END      = '\x1b'
-BUTTON_JUMP     = ' '
-BUTTON_RESTART  = "\n"
+KEY_BUTTON_JUMP      = pygame.K_SPACE
+KEY_BUTTON_RESET     = pygame.K_RETURN
+KEY_BUTTON_EXIT      = pygame.K_ESCAPE
 
+JOY_BUTTON_JUMP      = 11
+JOY_BUTTON_RESET     = 4
+JOY_BUTTON_EXIT      = 5
 
 FRAME_TIME = 0.01
 FRAME_KEY = 'frame'
@@ -278,34 +281,32 @@ class MainLoop(object):
         self.service = Service(width=116, height=8)
         self.game = Game()
         self.old_settings = None
+        self.should_exit = False
 
     def setup(self):
         self.old_settings = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
 
+        pygame.init()
+        pygame.joystick.init()
+
+        if pygame.joystick.get_count() > 0:
+            pygame.joystick.Joystick(0).init()
+
     def teardown(self):
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
 
-    def is_data(self):
-        return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
-
-    def get_input(self):
-        if self.is_data():
-            c = sys.stdin.read(1)
-            return c
-
     def handle_input(self):
-        c = self.get_input()
-        if c == BUTTON_END:
-            return True
+        for event in pygame.event.get(): 
+            is_joy = (event.type == pygame.JOYBUTTONDOWN)
+            is_key = (event.type == pygame.KEYDOWN)
 
-        if c == BUTTON_JUMP:
-            self.game.jump()
-
-        if c == BUTTON_RESTART:
-            self.game = Game()
-
-        return False
+            if ((is_joy and event.button == JOY_BUTTON_JUMP) or (is_key and event.key == KEY_BUTTON_JUMP)):
+                self.game.jump()
+            elif ((is_joy and event.button == JOY_BUTTON_RESET) or (is_key and event.key == KEY_BUTTON_RESET)):
+                self.game = Game()
+            elif ((is_joy and event.button == JOY_BUTTON_EXIT) or (is_key and event.key == KEY_BUTTON_EXIT)):
+                self.should_exit = True
 
     def update_buffer(self):
         self.game.update_service(self.service)
@@ -322,7 +323,7 @@ class MainLoop(object):
 
             last_frame_time = current_time
 
-            should_exit = self.handle_input()
+            self.handle_input()
 
             if self.game.is_over:
                 continue
@@ -330,7 +331,7 @@ class MainLoop(object):
             self.game.step(delta_time)
             self.update_buffer()
 
-            if should_exit:
+            if self.should_exit:
                 break
 
 
