@@ -11,6 +11,7 @@ PING_KEY = 'ping'
 FRAME_KEY = 'frame'
 
 FRAME_TIME = 0.02
+NUM_PINGS = 10
 
 def main():
     client = redis.Redis()
@@ -28,9 +29,10 @@ def main():
         if ping:
             ping = json.loads(ping)
 
-            ping_animation = Ping(s)
-            ping_animation.init(s, ping['r'], ping['g'], ping['b'])
-            s.add_instance(ping_animation)
+            for i in range(NUM_PINGS):
+                ping_animation = Ping(s)
+                ping_animation.init(s, ping['r'], ping['g'], ping['b'])
+                s.add_instance(ping_animation)
 
         update()
         time.sleep(FRAME_TIME)
