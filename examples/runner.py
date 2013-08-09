@@ -25,7 +25,7 @@ JOY_BUTTON_EXIT      = 5
 FRAME_TIME = 0.01
 FRAME_KEY = 'frame'
 
-PLAYER_MOVE_TIME = 1.0
+PLAYER_SPEED = 1.0
 PLAYER_JUMP_TIME = 0.4
 PLAYER_START_X   = 15.0
 PLAYER_START_Y   = 1.0
@@ -33,10 +33,10 @@ PLAYER_JUMP_HEIGHT  = 4
 
 COUNT_DOWN_TIME = 3.0
 
-GROUND_MOVE_TIME = 0.03
-GROUND_ADJUST_TIME = 1500
+GROUND_SPEED = 30.0
+SPEED_ADJUST = 0.025
 
-BACKGROUND_MOVE_MULTIPLIER = 10.0
+BACKGROUND_SPEED_MULTIPLIER = 0.1
 
 GROUND_MIN = 10
 GROUND_MAX = 25
@@ -46,14 +46,18 @@ GAP_MAX = 5
 
 class GroundArray(object):
     def __init__(self, num_first_ground=None):
-        self.index = 0
+        self.position = 0
         self.width = 0
         self.max_width = 256
         self.data = [ 0 for i in range(self.max_width) ]
         self.generate_ground(num_first_ground)
+        self.speed = GROUND_SPEED
+
+    def index(self):
+        return int(self.position)
 
     def generate_ground(self, num_first_ground=None):
-        self.index = 0
+        self.position = 0
         self.width = 0
 
         update_index = 0
@@ -80,26 +84,20 @@ class GroundArray(object):
             self.width += (ground_length + gap_length)
 
     def step(self, delta_time):
-        self.index += 1
+        self.position += (self.speed * delta_time)
+
+        self.speed += (self.speed * SPEED_ADJUST * delta_time)
 
     def steps_left(self): 
-        return (self.width - self.index)
+        return (self.width - self.index())
 
 class Ground(object):
     def __init__(self, lead):
         self.arrays = [ GroundArray(32), GroundArray() ]
         self.index = 0
         self.lead = lead
-        self.time_since_move = 0
-        self.move_time = GROUND_MOVE_TIME
 
     def step(self, delta_time):
-        self.time_since_move += delta_time
-        if self.time_since_move < self.move_time:
-            return
-
-        self.time_since_move = 0
-
         active_array = self.arrays[self.index]
         active_array.step(delta_time)
         next_index = (self.index + 1) % 2
@@ -111,8 +109,8 @@ class Ground(object):
 
     def data(self, index):
         active_array = self.arrays[self.index]
-        if (active_array.index + index) < active_array.width: 
-            return active_array.data[active_array.index + index]
+        if (active_array.index() + index) < active_array.width: 
+            return active_array.data[active_array.index() + index]
 
         next_index = (self.index + 1) % 2
         other_array = self.arrays[next_index]
@@ -121,12 +119,11 @@ class Ground(object):
 
 class Background(object):
     def __init__(self):
-        self.index = 0
+        self.position = 0
         self.width = 256
         self.array = [ 0 for i in range(self.width) ]
         self.generate_background()
-        self.move_time = BACKGROUND_MOVE_MULTIPLIER * GROUND_MOVE_TIME
-        self.time_since_move = 0
+        self.speed = BACKGROUND_SPEED_MULTIPLIER * GROUND_SPEED
 
     def generate_background(self):
         previous_level = 0
@@ -139,20 +136,23 @@ class Background(object):
             self.array[i] = level
             previous_level = level
 
+    def index(self):
+        return int(self.position)
+
     def step(self, delta_time):
-        self.time_since_move += delta_time
-        if self.time_since_move < self.move_time:
-            return
+        previous_index = self.index()
+        self.position += (self.speed * delta_time)
+        new_index = self.index()
+        if new_index >= self.width:
+            self.position -= self.width
 
-        self.time_since_move = 0
+        if previous_index != new_index:
+            self.calculate_index(previous_index)
 
-        previous_index = self.index
-        self.index = (self.index + 1) % self.width
-
-        self.calculate_index(previous_index)
+        self.speed += (self.speed * SPEED_ADJUST * delta_time)
 
     def data(self, index):
-        return self.array[(self.index + index) % self.width]
+        return self.array[(self.index() + index) % self.width]
 
     def calculate_index(self, index):
         previous_index = ((index - 1) % self.width)
@@ -179,7 +179,7 @@ class Player(object):
         self.is_jumping = False
 
     def step(self, delta_time):
-        self.position[0] += (PLAYER_MOVE_TIME * delta_time)
+        self.position[0] += (PLAYER_SPEED * delta_time)
 
         if self.is_jumping:
             self.step_jump(delta_time)
@@ -217,9 +217,6 @@ class Game(object):
 
         if self.is_in_countdown():
             return
-
-        self.ground.move_time = (GROUND_ADJUST_TIME - self.get_score()) * GROUND_MOVE_TIME / 1000.0
-        self.background.move_time = (self.ground.move_time * BACKGROUND_MOVE_MULTIPLIER)
 
         self.background.step(delta_time)
         self.ground.step(delta_time)
