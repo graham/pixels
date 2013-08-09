@@ -17,6 +17,10 @@ pixel_width=116
 def index():
     return open('pings.html').read()
 
+@route('/jquery.js')
+def jquery():
+    return open('jquery.js').read()
+
 @route('/clear')
 def data():
     client.delete(PING_KEY)
@@ -24,7 +28,6 @@ def data():
 
 @route('/ping')
 def ping():
-    print "PING"
     client.rpush(PING_KEY, "1")
 
 run(host='localhost', port=8080, debug=True)

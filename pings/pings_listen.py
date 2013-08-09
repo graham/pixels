@@ -25,7 +25,6 @@ def main():
     while True:
         ping = client.lpop(PING_KEY)
         if ping:
-            print "PING"
             s.add(Ping)
         update()
         time.sleep(FRAME_TIME)
