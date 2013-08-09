@@ -36,13 +36,31 @@ class Ping(Animation):
     def step(self, service, delta_time=0):
         service.set_pixel(self.loc[0], self.loc[1], int(self.red * self.level), int(self.green * self.level), int(self.blue * self.level))
 
+        outer_level = self.level * 0.05
+        if self.loc[0] > 0: 
+            service.set_pixel(self.loc[0] - 1, self.loc[1], int(self.red * outer_level), int(self.green * outer_level), int(self.blue * outer_level))            
+        if self.loc[0] < (service.width - 1): 
+            service.set_pixel(self.loc[0] + 1, self.loc[1], int(self.red * outer_level), int(self.green * outer_level), int(self.blue * outer_level))            
+        if self.loc[1] > 0: 
+            service.set_pixel(self.loc[0], self.loc[1] - 1, int(self.red * outer_level), int(self.green * outer_level), int(self.blue * outer_level))            
+        if self.loc[1] < (service.height - 1): 
+            service.set_pixel(self.loc[0], self.loc[1] + 1, int(self.red * outer_level), int(self.green * outer_level), int(self.blue * outer_level))            
+
         ## change the decay based on power.
         self.level -= 0.05
 
         if self.level > 0.0:
             return True
         else:
-            service.set_pixel(self.loc[0], self.loc[1],OFF,OFF,OFF)
+            service.set_pixel(self.loc[0], self.loc[1], OFF, OFF, OFF)
+            if self.loc[0] > 0: 
+                service.set_pixel(self.loc[0] - 1, self.loc[1], OFF, OFF, OFF)
+            if self.loc[0] < (service.width - 1): 
+                service.set_pixel(self.loc[0] + 1, self.loc[1], OFF, OFF, OFF)
+            if self.loc[1] > 0: 
+                service.set_pixel(self.loc[0], self.loc[1] - 1, OFF, OFF, OFF)
+            if self.loc[1] < (service.height - 1): 
+                service.set_pixel(self.loc[0], self.loc[1] + 1, OFF, OFF, OFF)
             return False
 
 class SpriteAnimation(Animation):

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+function ping()
+{
+	alert("SUP")
+	$.get('/ping', function(d) {});
+}
+</script>
+</head>
+
+<body>
+<button onclick="ping()">Ping</button>
+</body>
+</html>
