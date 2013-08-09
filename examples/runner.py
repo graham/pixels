@@ -195,13 +195,13 @@ class Player(object):
         y = (-(inner * inner) + 1) * PLAYER_JUMP_HEIGHT + 1
         self.position[1] = y
 
-    def jump(self, air_time):
+    def jump(self):
         if self.is_jumping: 
             return 
 
         self.jump_time = 0
         self.is_jumping = True
-        self.air_time = air_time
+        self.air_time = PLAYER_JUMP_TIME
 
 class Game(object):
     def __init__(self):
@@ -211,6 +211,7 @@ class Game(object):
         self.font = PixelFont("images/font.tif")
         self.is_over = False
         self.total_time = 0.0
+        self.is_jump_pressed = False
 
     def step(self, delta_time):
         self.total_time += delta_time
@@ -222,20 +223,24 @@ class Game(object):
         self.ground.step(delta_time)
         self.player.step(delta_time)
 
-        if self.is_player_dead():
-            self.is_over = True
+        self.check_player_ground()
 
     def is_in_countdown(self):
         return self.total_time < COUNT_DOWN_TIME
 
-    def is_player_dead(self):
+    def check_player_ground(self):
         if self.player.is_jumping:
-            return False
+            return
 
         player_x = int(math.floor(self.player.position[0]))
         ground = self.ground.data(player_x)
 
-        return (ground == 0)
+        if ground == 0:
+            self.is_over = True
+            return
+
+        if self.is_jump_pressed:
+            self.player.jump()
 
     def get_number(self):
         if self.is_in_countdown():
@@ -269,8 +274,12 @@ class Game(object):
         number = self.get_number()
         self.font.draw(str(int(number)), 0, 0, service, 255, 0, 0)
 
-    def jump(self):
-        self.player.jump(PLAYER_JUMP_TIME)
+    def jump_pressed(self):
+        self.is_jump_pressed = True
+        self.player.jump()
+
+    def jump_released(self):
+        self.is_jump_pressed = False
 
 class MainLoop(object):
     def __init__(self):
@@ -295,14 +304,18 @@ class MainLoop(object):
 
     def handle_input(self):
         for event in pygame.event.get(): 
-            is_joy = (event.type == pygame.JOYBUTTONDOWN)
-            is_key = (event.type == pygame.KEYDOWN)
+            is_joy_down = (event.type == pygame.JOYBUTTONDOWN)
+            is_joy_up = (event.type == pygame.JOYBUTTONUP)
+            is_key_down = (event.type == pygame.KEYDOWN)
+            is_key_up = (event.type == pygame.KEYUP)
 
-            if ((is_joy and event.button == JOY_BUTTON_JUMP) or (is_key and event.key == KEY_BUTTON_JUMP)):
-                self.game.jump()
-            elif ((is_joy and event.button == JOY_BUTTON_RESET) or (is_key and event.key == KEY_BUTTON_RESET)):
+            if ((is_joy_down and event.button == JOY_BUTTON_JUMP) or (is_key_down and event.key == KEY_BUTTON_JUMP)):
+                self.game.jump_pressed()
+            elif ((is_joy_up and event.button == JOY_BUTTON_JUMP) or (is_key_up and event.key == KEY_BUTTON_JUMP)):
+                self.game.jump_released()
+            elif ((is_joy_down and event.button == JOY_BUTTON_RESET) or (is_key_down and event.key == KEY_BUTTON_RESET)):
                 self.game = Game()
-            elif ((is_joy and event.button == JOY_BUTTON_EXIT) or (is_key and event.key == KEY_BUTTON_EXIT)):
+            elif ((is_joy_down and event.button == JOY_BUTTON_EXIT) or (is_key_down and event.key == KEY_BUTTON_EXIT)):
                 self.should_exit = True
 
     def update_buffer(self):
