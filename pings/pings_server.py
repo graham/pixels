@@ -1,4 +1,4 @@
-from bottle import route, run, template
+from bottle import route, run, template, request
 import redis
 import cPickle
 import json
@@ -21,13 +21,17 @@ def index():
 def jquery():
     return open('jquery.js').read()
 
+@route('/colorpicker.js')
+def colorpicker():
+    return open('colorpicker.min.js').read()
+
 @route('/clear')
 def data():
     client.delete(PING_KEY)
     return 'ok'
 
-@route('/ping')
+@route('/ping', method="POST")
 def ping():
-    client.rpush(PING_KEY, "1")
+    client.rpush(PING_KEY, json.dumps(request.json))
 
 run(host='localhost', port=8080, debug=True)

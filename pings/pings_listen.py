@@ -1,6 +1,7 @@
 import redis
 import time
 import cPickle
+import json
 
 from pixelfont import PixelFont
 from service import Service, Ping
@@ -25,7 +26,12 @@ def main():
     while True:
         ping = client.lpop(PING_KEY)
         if ping:
-            s.add(Ping)
+            ping = json.loads(ping)
+
+            ping_animation = Ping(s)
+            ping_animation.init(s, ping['r'], ping['g'], ping['b'])
+            s.add_instance(ping_animation)
+
         update()
         time.sleep(FRAME_TIME)
 

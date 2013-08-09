@@ -1,16 +1,50 @@
 <!DOCTYPE html>
 <html>
-<head><script type="text/javascript" src="/jquery.js"> </script></head>
 <head>
-<script>
-function ping()
-{
-	$.get('/ping', function(d) {});
-}
-</script>
+	<script type="text/javascript" src="/jquery.js"></script>
+	<script type="text/javascript" src="/colorpicker.js"></script>
+	<style type="text/css">
+                  #color { width: 200px; height: 40px }
+                  #picker { width: 0px; height: 0px }
+                  #slide { width: 200px; height: 200px }
+                </style>
+                </head>
+<head>
 </head>
 
 <body>
+<div>
+	<div id="picker"></div>
+	<div id="slide"></div>
+	<br>
+	<div id="color"></div>
+	<br>
+</div>
+<script type="text/javascript">
+var color = {'r' : 255, 'g' : 255, 'b' : 255}
+
+function ping()
+{
+    $.ajax({
+        url: "/ping",
+        type: "POST",
+        data: JSON.stringify({"r": color.r, "g": color.g, "b": color.b}),
+        contentType: "application/json",
+        dataType: "json",
+        success: function(data) {
+            alert(data);
+        }
+    });
+}
+
+ColorPicker(
+document.getElementById('slide'),
+document.getElementById('picker'),
+function(hex, hsv, rgb) {
+	color = rgb;
+	document.getElementById('color').style.backgroundColor = hex;
+});
+</script>
 <button onclick="ping()">Ping</button>
 </body>
 </html>

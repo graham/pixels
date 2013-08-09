@@ -33,6 +33,13 @@ class Ping(Animation):
         self.green = bound(random.randint(-MID, MAX), OFF, MID)
         self.loc = [random.randint(0, service.width-1), random.randint(0, service.height-1)]
 
+    def init(self, service, red, green, blue):
+        self.level = 1.0
+        self.red = bound(red, OFF, MID)
+        self.blue = bound(blue, OFF, MID)
+        self.green = bound(green, OFF, MID)
+        self.loc = [random.randint(0, service.width-1), random.randint(0, service.height-1)]
+
     def step(self, service, delta_time=0):
         service.set_pixel(self.loc[0], self.loc[1], int(self.red * self.level), int(self.green * self.level), int(self.blue * self.level))
 
