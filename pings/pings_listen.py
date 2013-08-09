@@ -2,6 +2,7 @@ import redis
 import time
 import cPickle
 import json
+import os
 
 from pixelfont import PixelFont
 from service import Service, Ping
@@ -14,7 +15,10 @@ FRAME_TIME = 0.02
 NUM_PINGS = 10
 
 def main():
+    host = os.environ.get('REDISHOST', 'datalamb.com')
+    ping_client = redis.Redis(host)
     client = redis.Redis()
+
     s = Service(width=Service.DEFAULT_WIDTH, height=Service.DEFAULT_HEIGHT)
 
     def update(delta_time=0):
@@ -25,7 +29,7 @@ def main():
         client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
 
     while True:
-        ping = client.lpop(PING_KEY)
+        ping = ping_client.lpop(PING_KEY)
         if ping:
             ping = json.loads(ping)
 

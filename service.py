@@ -118,6 +118,21 @@ class Service(object):
         index = (y * self.width) + x
         self.pixel_map[index] = pixel(red, green, blue)
 
+    def draw_image(self, filename, start_x, start_y):
+        image = Image.open(filename)
+        image_data = image.getdata()
+        width, height = image.size
+
+        for x in range(0, width):
+            for y in range(0, height):
+                pixel_data = image_data[x + (y * width)]
+                if pixel_data[3] > 0:
+                    alpha = (pixel_data[3] / 255.0)
+                    self.set_pixel(start_x + x, start_y + y, (pixel_data[0] * alpha), (pixel_data[1] * alpha), (pixel_data[2] * alpha))
+                else:
+                    self.set_pixel(start_x + x, start_y + y, OFF, OFF, OFF)
+
+
     def add(self, ani):
         c = ani(self)
         c.init(self)
@@ -211,7 +226,9 @@ if __name__ == '__main__':
     font = PixelFont("images/font.tif")
 
     def justworks():
-        render_offset = 20
+        render_offset = 18
+        s.draw_image("images/dropbox.png", 5, 0)
+        s.draw_image("images/dropbox.png", 100, 0)
         font.draw("IT ", render_offset + 0, 0, s, 255, 255, 255)
         font.draw("JUST WORK", render_offset + 18, 0, s, 0, 0, 255)
         font.draw("S", render_offset + 72, 0, s, 255, 255, 255)
@@ -236,6 +253,10 @@ if __name__ == '__main__':
             
             last_frame_time = current_time
             update(delta_time)
+
+    def box():
+        s.draw_image("images/dropbox.png", 0, 0)
+        update()
 
     def wizard():
         sprite_animation = SpriteAnimation(s)
@@ -264,6 +285,10 @@ if __name__ == '__main__':
 
     def white():
         s.fill(255, 255, 255)
+        update()
+
+    def black():
+        s.fill(0, 0, 0)
         update()
 
     def to_black():
