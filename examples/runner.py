@@ -186,14 +186,14 @@ class Player(object):
 
     def step_jump(self, delta_time):
         self.jump_time += delta_time
-        if self.jump_time > self.air_time:
-            self.position[1] = 1.0
-            self.is_jumping = False
-            return
 
-        inner = (2 / PLAYER_JUMP_TIME * self.jump_time - 1)
+        inner = (2 / self.air_time * self.jump_time - 1)
         y = (-(inner * inner) + 1) * PLAYER_JUMP_HEIGHT + 1
         self.position[1] = y
+
+        if self.position[1] <= 1.0:
+            self.position[1] = 1.0
+            self.is_jumping = False
 
     def jump(self):
         if self.is_jumping: 
@@ -202,6 +202,13 @@ class Player(object):
         self.jump_time = 0
         self.is_jumping = True
         self.air_time = PLAYER_JUMP_TIME
+
+    def fall(self):
+        if not self.is_jumping:
+            return
+
+        if self.jump_time < (self.air_time * 0.5):
+            self.jump_time = (self.air_time * 0.5)
 
 class Game(object):
     def __init__(self):
@@ -240,6 +247,7 @@ class Game(object):
             return
 
         if self.is_jump_pressed:
+            self.is_jump_pressed = False
             self.player.jump()
 
     def get_number(self):
@@ -275,11 +283,14 @@ class Game(object):
         self.font.draw(str(int(number)), 0, 0, service, 255, 0, 0)
 
     def jump_pressed(self):
-        self.is_jump_pressed = True
-        self.player.jump()
+        if self.player.is_jumping:
+            self.is_jump_pressed = True
+        else:
+            self.player.jump()
 
     def jump_released(self):
         self.is_jump_pressed = False
+        self.player.fall()
 
 class MainLoop(object):
     def __init__(self):
