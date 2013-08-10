@@ -278,10 +278,15 @@ if __name__ == '__main__':
     def pings():
         while True:
             time.sleep(0.02)
-            s.add(Ping)
-            s.add(Ping)
-            s.add(Ping)
-            update()
+            for i in range(3):
+                red = bound(random.randint(-MID, MAX), OFF, MID)
+                blue = bound(random.randint(-MID, MAX), OFF, MID)
+                green = bound(random.randint(-MID, MAX), OFF, MID)
+
+                ping = Ping(s)
+                ping.init(s, red, blue, green)
+                s.add_instance(ping)
+                update()
 
     def white():
         s.fill(255, 255, 255)
