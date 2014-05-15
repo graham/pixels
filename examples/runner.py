@@ -7,17 +7,25 @@ import random
 import time
 import math
 import cPickle
+import pygame
 
 from pixelfont import PixelFont
 from pixelpusher import pixel, build_strip, send_strip, bound
 from service import Service
 from util import redis_conn
 
-BUTTON_END = '\x1b'
+KEY_BUTTON_JUMP      = pygame.K_SPACE
+KEY_BUTTON_RESET     = pygame.K_RETURN
+KEY_BUTTON_EXIT      = pygame.K_ESCAPE
+
+JOY_BUTTON_JUMP      = 11
+JOY_BUTTON_RESET     = 4
+JOY_BUTTON_EXIT      = 5
+
 FRAME_TIME = 0.01
 FRAME_KEY = 'frame'
 
-PLAYER_MOVE_TIME = 1.0
+PLAYER_SPEED = 1.0
 PLAYER_JUMP_TIME = 0.4
 PLAYER_START_X   = 15.0
 PLAYER_START_Y   = 1.0
@@ -25,10 +33,10 @@ PLAYER_JUMP_HEIGHT  = 4
 
 COUNT_DOWN_TIME = 3.0
 
-GROUND_MOVE_TIME = 0.03
-GROUND_ADJUST_TIME = 1500
+GROUND_SPEED = 30.0
+SPEED_ADJUST = 0.025
 
-BACKGROUND_MOVE_MULTIPLIER = 10.0
+BACKGROUND_SPEED_MULTIPLIER = 0.1
 
 GROUND_MIN = 10
 GROUND_MAX = 25
@@ -36,42 +44,20 @@ GROUND_MAX = 25
 GAP_MIN = 3
 GAP_MAX = 5
 
-def setup():
-    old_settings = termios.tcgetattr(sys.stdin)
-    tty.setcbreak(sys.stdin.fileno())
-    return old_settings
-
-def teardown(old_settings):
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-
-def get_input():
-    if is_data():
-        c = sys.stdin.read(1)
-        return c
-
-def handle_input(game):
-    c = get_input()
-    if c == BUTTON_END:
-        return True
-
-    if c == ' ':
-        game.jump()
-
-    return False
-
-def is_data():
-    return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
-
 class GroundArray(object):
     def __init__(self, num_first_ground=None):
-        self.index = 0
+        self.position = 0
         self.width = 0
         self.max_width = 256
         self.data = [ 0 for i in range(self.max_width) ]
         self.generate_ground(num_first_ground)
+        self.speed = GROUND_SPEED
+
+    def index(self):
+        return int(self.position)
 
     def generate_ground(self, num_first_ground=None):
-        self.index = 0
+        self.position = 0
         self.width = 0
 
         update_index = 0
@@ -98,26 +84,20 @@ class GroundArray(object):
             self.width += (ground_length + gap_length)
 
     def step(self, delta_time):
-        self.index += 1
+        self.position += (self.speed * delta_time)
+
+        self.speed += (self.speed * SPEED_ADJUST * delta_time)
 
     def steps_left(self): 
-        return (self.width - self.index)
+        return (self.width - self.index())
 
 class Ground(object):
     def __init__(self, lead):
         self.arrays = [ GroundArray(32), GroundArray() ]
         self.index = 0
         self.lead = lead
-        self.time_since_move = 0
-        self.move_time = GROUND_MOVE_TIME
 
     def step(self, delta_time):
-        self.time_since_move += delta_time
-        if self.time_since_move < self.move_time:
-            return
-
-        self.time_since_move = 0
-
         active_array = self.arrays[self.index]
         active_array.step(delta_time)
         next_index = (self.index + 1) % 2
@@ -129,8 +109,8 @@ class Ground(object):
 
     def data(self, index):
         active_array = self.arrays[self.index]
-        if (active_array.index + index) < active_array.width: 
-            return active_array.data[active_array.index + index]
+        if (active_array.index() + index) < active_array.width: 
+            return active_array.data[active_array.index() + index]
 
         next_index = (self.index + 1) % 2
         other_array = self.arrays[next_index]
@@ -139,12 +119,11 @@ class Ground(object):
 
 class Background(object):
     def __init__(self):
-        self.index = 0
+        self.position = 0
         self.width = 256
         self.array = [ 0 for i in range(self.width) ]
         self.generate_background()
-        self.move_time = BACKGROUND_MOVE_MULTIPLIER * GROUND_MOVE_TIME
-        self.time_since_move = 0
+        self.speed = BACKGROUND_SPEED_MULTIPLIER * GROUND_SPEED
 
     def generate_background(self):
         previous_level = 0
@@ -157,20 +136,23 @@ class Background(object):
             self.array[i] = level
             previous_level = level
 
+    def index(self):
+        return int(self.position)
+
     def step(self, delta_time):
-        self.time_since_move += delta_time
-        if self.time_since_move < self.move_time:
-            return
+        previous_index = self.index()
+        self.position += (self.speed * delta_time)
+        new_index = self.index()
+        if new_index >= self.width:
+            self.position -= self.width
 
-        self.time_since_move = 0
+        if previous_index != new_index:
+            self.calculate_index(previous_index)
 
-        previous_index = self.index
-        self.index = (self.index + 1) % self.width
-
-        self.calculate_index(previous_index)
+        self.speed += (self.speed * SPEED_ADJUST * delta_time)
 
     def data(self, index):
-        return self.array[(self.index + index) % self.width]
+        return self.array[(self.index() + index) % self.width]
 
     def calculate_index(self, index):
         previous_index = ((index - 1) % self.width)
@@ -197,29 +179,36 @@ class Player(object):
         self.is_jumping = False
 
     def step(self, delta_time):
-        self.position[0] += (PLAYER_MOVE_TIME * delta_time)
+        self.position[0] += (PLAYER_SPEED * delta_time)
 
         if self.is_jumping:
             self.step_jump(delta_time)
 
     def step_jump(self, delta_time):
         self.jump_time += delta_time
-        if self.jump_time > self.air_time:
-            self.position[1] = 1.0
-            self.is_jumping = False
-            return
 
-        inner = (2 / PLAYER_JUMP_TIME * self.jump_time - 1)
+        inner = (2 / self.air_time * self.jump_time - 1)
         y = (-(inner * inner) + 1) * PLAYER_JUMP_HEIGHT + 1
         self.position[1] = y
 
-    def jump(self, air_time):
+        if self.position[1] <= 1.0:
+            self.position[1] = 1.0
+            self.is_jumping = False
+
+    def jump(self):
         if self.is_jumping: 
             return 
 
         self.jump_time = 0
         self.is_jumping = True
-        self.air_time = air_time
+        self.air_time = PLAYER_JUMP_TIME
+
+    def fall(self):
+        if not self.is_jumping:
+            return
+
+        if self.jump_time < (self.air_time * 0.5):
+            self.jump_time = (self.air_time * 0.5)
 
 class Game(object):
     def __init__(self):
@@ -229,6 +218,7 @@ class Game(object):
         self.font = PixelFont("images/font.tif")
         self.is_over = False
         self.total_time = 0.0
+        self.is_jump_pressed = False
 
     def step(self, delta_time):
         self.total_time += delta_time
@@ -236,27 +226,29 @@ class Game(object):
         if self.is_in_countdown():
             return
 
-        self.ground.move_time = (GROUND_ADJUST_TIME - self.get_score()) * GROUND_MOVE_TIME / 1000.0
-        self.background.move_time = (self.ground.move_time * BACKGROUND_MOVE_MULTIPLIER)
-
         self.background.step(delta_time)
         self.ground.step(delta_time)
         self.player.step(delta_time)
 
-        if self.is_player_dead():
-            self.is_over = True
+        self.check_player_ground()
 
     def is_in_countdown(self):
         return self.total_time < COUNT_DOWN_TIME
 
-    def is_player_dead(self):
+    def check_player_ground(self):
         if self.player.is_jumping:
-            return False
+            return
 
         player_x = int(math.floor(self.player.position[0]))
         ground = self.ground.data(player_x)
 
-        return (ground == 0)
+        if ground == 0:
+            self.is_over = True
+            return
+
+        if self.is_jump_pressed:
+            self.is_jump_pressed = False
+            self.player.jump()
 
     def get_number(self):
         if self.is_in_countdown():
@@ -290,38 +282,85 @@ class Game(object):
         number = self.get_number()
         self.font.draw(str(int(number)), 0, 0, service, 255, 0, 0)
 
-    def jump(self):
-        self.player.jump(PLAYER_JUMP_TIME)
+    def jump_pressed(self):
+        if self.player.is_jumping:
+            self.is_jump_pressed = True
+        else:
+            self.player.jump()
 
-def main():
-    client = redis_conn()
-    service = Service(width=116, height=8)
-    game = Game()
+    def jump_released(self):
+        self.is_jump_pressed = False
+        self.player.fall()
 
-    def update_buffer():
-        game.update_service(service)
-        new_frame = service.step()
-        client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
+class MainLoop(object):
+    def __init__(self):
+        self.client = redis_conn()
+        self.service = Service(width=116, height=8)
+        self.game = Game()
+        self.old_settings = None
+        self.should_exit = False
 
-    last_frame_time = time.time()
-    while 1:
-        current_time = time.time()
-        delta_time = (current_time - last_frame_time)
-        if delta_time < FRAME_TIME:
-            continue
+    def setup(self):
+        self.old_settings = termios.tcgetattr(sys.stdin)
+        tty.setcbreak(sys.stdin.fileno())
 
-        last_frame_time = current_time
+        pygame.init()
+        pygame.joystick.init()
 
-        handle_input(game)
-        game.step(delta_time)
-        update_buffer()
+        if pygame.joystick.get_count() > 0:
+            pygame.joystick.Joystick(0).init()
 
-        if game.is_over:
-            break
+    def teardown(self):
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
+
+    def handle_input(self):
+        for event in pygame.event.get(): 
+            is_joy_down = (event.type == pygame.JOYBUTTONDOWN)
+            is_joy_up = (event.type == pygame.JOYBUTTONUP)
+            is_key_down = (event.type == pygame.KEYDOWN)
+            is_key_up = (event.type == pygame.KEYUP)
+
+            if ((is_joy_down and event.button == JOY_BUTTON_JUMP) or (is_key_down and event.key == KEY_BUTTON_JUMP)):
+                self.game.jump_pressed()
+            elif ((is_joy_up and event.button == JOY_BUTTON_JUMP) or (is_key_up and event.key == KEY_BUTTON_JUMP)):
+                self.game.jump_released()
+            elif ((is_joy_down and event.button == JOY_BUTTON_RESET) or (is_key_down and event.key == KEY_BUTTON_RESET)):
+                self.game = Game()
+            elif ((is_joy_down and event.button == JOY_BUTTON_EXIT) or (is_key_down and event.key == KEY_BUTTON_EXIT)):
+                self.should_exit = True
+
+    def update_buffer(self):
+        self.game.update_service(self.service)
+        new_frame = self.service.step()
+        self.client.rpush(FRAME_KEY, cPickle.dumps(new_frame))
+
+    def run(self):
+        last_frame_time = time.time()
+        while 1:
+            current_time = time.time()
+            delta_time = (current_time - last_frame_time)
+            if delta_time < FRAME_TIME:
+                continue
+
+            last_frame_time = current_time
+
+            self.handle_input()
+
+            if self.game.is_over:
+                continue
+
+            self.game.step(delta_time)
+            self.update_buffer()
+
+            if self.should_exit:
+                break
+
+
+main = MainLoop()
 
 try:
-    old_settings = setup()
-    main()
+    main.setup()
+    main.run()
 
 finally:
-    teardown(old_settings)
+    main.teardown()
